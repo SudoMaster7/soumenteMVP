@@ -6,7 +6,7 @@ import {
 import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getCurrentUser } from '@/services/authService';
-import { supabase } from '@/lib/supabase';
+import { plantSeed } from '@/services/seedService';
 
 const DEFAULT_QUESTIONS = [
   'Por que isso é importante para você agora?',
@@ -43,26 +43,11 @@ export default function Questions() {
       const user = await getCurrentUser();
       if (!user) { setPlanting(false); return; }
 
-      await supabase
-        .from('seeds')
-        .update({
-          status: 'planted',
-          planted_at: new Date().toISOString(),
-          ai_questions: answers,
-        })
-        .eq('id', seedId);
-
-      const roots = [
-        { name: 'Reflexão diária', description: 'Reserve 5 minutos para pensar no seu progresso', type: 'daily', frequency: 1 },
-        { name: 'Ação concreta', description: 'Faça pelo menos uma coisa que te aproxime do objetivo', type: 'daily', frequency: 1 },
-        { name: 'Revisão semanal', description: 'Avalie o que funcionou e o que precisa mudar', type: 'weekly', frequency: 1 },
-      ];
-      await supabase.from('roots').insert(
-        roots.map(r => ({ ...r, seed_id: seedId, user_id: user.id }))
-      );
+      await plantSeed(seedId, user.id, answers);
 
       router.replace({ pathname: '/seed/planted', params: { seedName } });
-    } catch {
+    } catch (error) {
+      console.error('Failed to plant seed', error);
       Alert.alert('Erro', 'Não foi possível plantar. Tente novamente.');
     } finally {
       setPlanting(false);

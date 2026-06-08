@@ -41,7 +41,8 @@ export default function Diary() {
       setText('');
       setDimension(null);
       await refetch();
-    } catch {
+    } catch (error) {
+      console.error('Failed to save diary entry', error);
       Alert.alert('Erro', 'Não foi possível salvar. Tente novamente.');
     } finally {
       setSaving(false);

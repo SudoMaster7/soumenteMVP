@@ -2,14 +2,15 @@ import { supabase } from '@/lib/supabase';
 import type { Seed, Root } from '@/types';
 
 export async function getActiveSeed(userId: string): Promise<Seed | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('seeds')
     .select('*, roots(*), fruits(*)')
     .eq('user_id', userId)
     .neq('status', 'harvested')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
+  if (error) throw error;
   return data;
 }
 
@@ -21,6 +22,134 @@ export async function createSeed(userId: string, seed: Partial<Seed>): Promise<S
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function getSeedById(seedId: string, userId: string): Promise<Seed | null> {
+  const { data, error } = await supabase
+    .from('seeds')
+    .select('*, roots(*), fruits(*)')
+    .eq('id', seedId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateSeed(
+  seedId: string,
+  userId: string,
+  seed: Partial<Pick<Seed, 'name' | 'type' | 'why' | 'for_whom' | 'deadline'>>
+): Promise<Seed> {
+  const { data, error } = await supabase
+    .from('seeds')
+    .update(seed)
+    .eq('id', seedId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteSeed(seedId: string, userId: string): Promise<void> {
+  const { data: roots, error: rootsSelectError } = await supabase
+    .from('roots')
+    .select('id')
+    .eq('seed_id', seedId)
+    .eq('user_id', userId);
+
+  if (rootsSelectError) throw rootsSelectError;
+
+  const rootIds = roots?.map(root => root.id) || [];
+
+  if (rootIds.length > 0) {
+    const { error: completionsError } = await supabase
+      .from('root_completions')
+      .delete()
+      .in('root_id', rootIds)
+      .eq('user_id', userId);
+
+    if (completionsError) throw completionsError;
+  }
+
+  const { error: diaryError } = await supabase
+    .from('diary_entries')
+    .update({ seed_id: null })
+    .eq('seed_id', seedId)
+    .eq('user_id', userId);
+
+  if (diaryError) throw diaryError;
+
+  const { error: rootsError } = await supabase
+    .from('roots')
+    .delete()
+    .eq('seed_id', seedId)
+    .eq('user_id', userId);
+
+  if (rootsError) throw rootsError;
+
+  const { error: fruitsError } = await supabase
+    .from('fruits')
+    .delete()
+    .eq('seed_id', seedId)
+    .eq('user_id', userId);
+
+  if (fruitsError) throw fruitsError;
+
+  const { error: seedError } = await supabase
+    .from('seeds')
+    .delete()
+    .eq('id', seedId)
+    .eq('user_id', userId);
+
+  if (seedError) throw seedError;
+}
+
+export async function plantSeed(
+  seedId: string,
+  userId: string,
+  answers: string[]
+): Promise<void> {
+  const { error: seedError } = await supabase
+    .from('seeds')
+    .update({
+      status: 'planted',
+      planted_at: new Date().toISOString(),
+      ai_questions: answers,
+    })
+    .eq('id', seedId)
+    .eq('user_id', userId);
+
+  if (seedError) throw seedError;
+
+  const roots = [
+    {
+      name: 'Reflexão diária',
+      description: 'Reserve 5 minutos para pensar no seu progresso',
+      type: 'daily',
+      frequency: 1,
+    },
+    {
+      name: 'Ação concreta',
+      description: 'Faça pelo menos uma coisa que te aproxime do objetivo',
+      type: 'daily',
+      frequency: 1,
+    },
+    {
+      name: 'Revisão semanal',
+      description: 'Avalie o que funcionou e o que precisa mudar',
+      type: 'weekly',
+      frequency: 1,
+    },
+  ];
+
+  const { error: rootsError } = await supabase.from('roots').insert(
+    roots.map(r => ({ ...r, seed_id: seedId, user_id: userId }))
+  );
+
+  if (rootsError) throw rootsError;
 }
 
 export async function plantSeedManual(
@@ -101,6 +230,8 @@ export async function waterRoot(
 }
 
 async function updateSeedStatus(seedId: string): Promise<void> {
+  if (!seedId) return;
+
   const { data: roots } = await supabase
     .from('roots')
     .select('strength')
