@@ -1,12 +1,20 @@
-﻿import {
-  View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, Alert, Switch,
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { useCallback, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { useDiary } from '@/hooks/useDiary';
-import { signOut } from '@/services/authService';
+import { getCurrentUser, signOut } from '@/services/authService';
+import { getGrowthProfile, type GrowthProfile } from '@/services/growthService';
 import { DEV_AUTH_ENABLED } from '@/lib/devAuth';
 import { useTheme, type AppTheme } from '@/lib/theme';
 
@@ -16,6 +24,19 @@ export default function Profile() {
   const colors = theme.colors;
   const { profile } = useAuth();
   const { streak } = useDiary();
+  const [growth, setGrowth] = useState<GrowthProfile | null>(null);
+  const [loadingGrowth, setLoadingGrowth] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    setLoadingGrowth(true);
+    getCurrentUser()
+      .then(user => user ? getGrowthProfile(user.id) : null)
+      .then(result => {
+        if (result) setGrowth(result);
+      })
+      .catch(error => console.warn('Failed to load profile growth', error))
+      .finally(() => setLoadingGrowth(false));
+  }, []));
 
   async function handleLogout() {
     Alert.alert('Reiniciar', 'Voltar para a tela inicial?', [
@@ -55,6 +76,57 @@ export default function Profile() {
           <Text style={styles.summaryLabel}>um passo basta</Text>
         </View>
       </View>
+
+      <Text style={styles.sectionLabel}>PROGRESSO</Text>
+      <View style={styles.growthCard}>
+        {loadingGrowth && !growth ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : growth ? (
+          <>
+            <View style={styles.growthHeader}>
+              <View style={styles.growthIcon}>
+                <Ionicons name="flower-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.growthKicker}>Nivel {growth.level.level}</Text>
+                <Text style={styles.growthTitle}>{growth.level.name}</Text>
+              </View>
+              <Text style={styles.score}>{growth.score}</Text>
+            </View>
+            <Text style={styles.growthText}>{growth.level.description}</Text>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${growth.level.progress}%` }]} />
+            </View>
+            {growth.nextAchievement ? (
+              <Text style={styles.nextLine}>
+                Proxima conquista: {growth.nextAchievement.title}
+                {growth.nextAchievement.distance > 0 ? ` - faltam ${growth.nextAchievement.distance}` : ''}
+              </Text>
+            ) : null}
+          </>
+        ) : (
+          <Text style={styles.settingHint}>Sem dados de progresso ainda.</Text>
+        )}
+      </View>
+
+      {growth?.unlockedAchievements.length ? (
+        <>
+          <Text style={styles.sectionLabel}>CONQUISTAS</Text>
+          <View style={styles.settingsCard}>
+            {growth.unlockedAchievements.map((achievement, index) => (
+              <View key={achievement.id} style={[styles.achievementRow, index > 0 && styles.rowBorder]}>
+                <View style={styles.achievementIcon}>
+                  <Ionicons name="ribbon-outline" size={18} color={colors.success} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.achievementTitle}>{achievement.title}</Text>
+                  <Text style={styles.achievementText}>{achievement.message}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      ) : null}
 
       <Text style={styles.sectionLabel}>APARENCIA</Text>
       <View style={styles.settingsCard}>
@@ -125,7 +197,22 @@ function makeStyles(theme: AppTheme) {
     summaryValue: { fontSize: 20, fontWeight: '800', color: colors.text, marginTop: 8 },
     summaryLabel: { fontSize: 11, color: colors.muted, marginTop: 2 },
     sectionLabel: { fontSize: 9, letterSpacing: 3, color: colors.muted, fontWeight: '800', marginBottom: 10 },
+    growthCard: { backgroundColor: colors.surface, borderRadius: 10, marginBottom: 22, borderWidth: 1, borderColor: colors.border, padding: 16 },
+    growthHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+    growthIcon: { width: 42, height: 42, borderRadius: 10, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    growthKicker: { fontSize: 10, color: colors.primary, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+    growthTitle: { fontSize: 18, color: colors.text, fontWeight: '900' },
+    score: { fontSize: 17, color: colors.accent, fontWeight: '900' },
+    growthText: { fontSize: 13, color: colors.muted, lineHeight: 20, marginBottom: 12 },
+    track: { height: 6, backgroundColor: colors.backgroundAlt, borderRadius: 99, overflow: 'hidden' },
+    fill: { height: 6, backgroundColor: colors.primary, borderRadius: 99 },
+    nextLine: { fontSize: 12, color: colors.accent, fontWeight: '800', lineHeight: 18, marginTop: 10 },
     settingsCard: { backgroundColor: colors.surface, borderRadius: 10, marginBottom: 22, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+    achievementRow: { flexDirection: 'row', gap: 12, padding: 15 },
+    rowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+    achievementIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: colors.successSoft, alignItems: 'center', justifyContent: 'center' },
+    achievementTitle: { fontSize: 14, color: colors.text, fontWeight: '900', marginBottom: 3 },
+    achievementText: { fontSize: 12, color: colors.muted, lineHeight: 18 },
     settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, gap: 14 },
     settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
     settingLabel: { fontSize: 14, color: colors.text, fontWeight: '700' },

@@ -142,6 +142,28 @@ export default function WeeklyReport() {
           <InsightCard title="Vitoria da semana" icon="trophy-outline" text={report.win} theme={theme} tone="success" />
           <InsightCard title="Proximo passo" icon="walk-outline" text={report.nextAction} theme={theme} tone="primary" />
 
+          {report.newlyUnlockedAchievements.length ? (
+            <View style={styles.newAchievementCard}>
+              <Ionicons name="sparkles-outline" size={22} color={colors.primary} />
+              <Text style={styles.newAchievementKicker}>NOVA CONQUISTA</Text>
+              <Text style={styles.newAchievementTitle}>{report.newlyUnlockedAchievements[0].title}</Text>
+              <Text style={styles.newAchievementText}>{report.newlyUnlockedAchievements[0].message}</Text>
+            </View>
+          ) : report.nextAchievement ? (
+            <View style={styles.nextAchievementCard}>
+              <View>
+                <Text style={styles.nextAchievementKicker}>PROXIMA CONQUISTA</Text>
+                <Text style={styles.nextAchievementTitle}>{report.nextAchievement.title}</Text>
+                <Text style={styles.nextAchievementText}>
+                  {report.nextAchievement.distance > 0
+                    ? `Faltam ${report.nextAchievement.distance} ponto(s)/acao(oes) para desbloquear.`
+                    : 'Voce esta perto de desbloquear.'}
+                </Text>
+              </View>
+              <Ionicons name="ribbon-outline" size={24} color={colors.accent} />
+            </View>
+          ) : null}
+
           <View style={styles.intentionCard}>
             <View style={styles.insightHeader}>
               <Ionicons name="flag-outline" size={18} color={colors.accent} />
@@ -325,6 +347,14 @@ function makeStyles(theme: AppTheme) {
     insightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 },
     insightTitle: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
     insightText: { fontSize: 14, color: colors.text, lineHeight: 22 },
+    newAchievementCard: { backgroundColor: colors.primarySoft, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 10, alignItems: 'center' },
+    newAchievementKicker: { fontSize: 10, color: colors.primary, fontWeight: '900', letterSpacing: 2, marginTop: 8, marginBottom: 6 },
+    newAchievementTitle: { fontSize: 20, color: colors.text, fontWeight: '900', textAlign: 'center', marginBottom: 6 },
+    newAchievementText: { fontSize: 13, color: colors.muted, lineHeight: 20, textAlign: 'center' },
+    nextAchievementCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12, justifyContent: 'space-between' },
+    nextAchievementKicker: { fontSize: 10, color: colors.accent, fontWeight: '900', letterSpacing: 2, marginBottom: 5 },
+    nextAchievementTitle: { fontSize: 16, color: colors.text, fontWeight: '900', marginBottom: 4 },
+    nextAchievementText: { fontSize: 12, color: colors.muted, lineHeight: 18 },
     intentionCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
     intentionInput: { minHeight: 72, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundAlt, color: colors.text, padding: 12, fontSize: 14, lineHeight: 20, textAlignVertical: 'top', marginBottom: 12 },
     saveIntentionBtn: { backgroundColor: colors.primary, borderRadius: 10, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },

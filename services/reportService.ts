@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { isDevUser } from '@/lib/devAuth';
 import { getWeekEntries } from './diaryService';
 import { getActiveSeed } from './seedService';
-import { getGrowthProfile, getWeeklyIntention, type Achievement, type ConsciousnessLevel } from './growthService';
+import { getGrowthProfile, getWeeklyIntention, recordWeeklyReportRead, type Achievement, type ConsciousnessLevel } from './growthService';
 import type { DiaryEntry, EmotionType, Root } from '@/types';
 
 export type WeeklyReportData = {
@@ -34,6 +34,8 @@ export type WeeklyReportData = {
   intention: string;
   consciousness: ConsciousnessLevel;
   achievements: Achievement[];
+  newlyUnlockedAchievements: Achievement[];
+  nextAchievement: Achievement | null;
 };
 
 const EMOTION_LABELS: Record<EmotionType | string, string> = {
@@ -106,6 +108,8 @@ function buildNextAction(registeredDays: number, roots: Root[]) {
 }
 
 export async function generateWeeklyReport(userId: string): Promise<WeeklyReportData> {
+  await recordWeeklyReportRead(userId);
+
   const [entries, seed] = await Promise.all([
     getWeekEntries(userId),
     getActiveSeed(userId),
@@ -149,6 +153,8 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
         intention,
         consciousness: growth.level,
         achievements: growth.unlockedAchievements,
+        newlyUnlockedAchievements: growth.newlyUnlockedAchievements,
+        nextAchievement: growth.nextAchievement,
       }
     : {
         isEmpty: false,
@@ -179,6 +185,8 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
         intention,
         consciousness: growth.level,
         achievements: growth.unlockedAchievements,
+        newlyUnlockedAchievements: growth.newlyUnlockedAchievements,
+        nextAchievement: growth.nextAchievement,
       };
 
   if (!isDevUser(userId)) {

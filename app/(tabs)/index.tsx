@@ -159,10 +159,14 @@ export default function Home() {
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${growth.level.progress}%`, backgroundColor: colors.accent }]} />
           </View>
+          <Text style={styles.scoreLine}>Pontuacao de consciencia: {growth.score} pontos</Text>
           {weeklyIntention ? (
             <Text style={styles.intentionLine}>Intencao da semana: {weeklyIntention}</Text>
           ) : growth.nextAchievement ? (
-            <Text style={styles.intentionLine}>Proxima conquista: {growth.nextAchievement.title}</Text>
+            <Text style={styles.intentionLine}>
+              Proxima conquista: {growth.nextAchievement.title}
+              {growth.nextAchievement.distance > 0 ? ` - faltam ${growth.nextAchievement.distance}` : ''}
+            </Text>
           ) : (
             <Text style={styles.intentionLine}>Seu jardim ja tem memoria. Continue cultivando.</Text>
           )}
@@ -264,6 +268,7 @@ function makeStyles(theme: AppTheme) {
     growthKicker: { fontSize: 9, color: colors.primary, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 2 },
     growthTitle: { fontSize: 18, color: colors.text, fontWeight: '900' },
     growthDescription: { fontSize: 13, color: colors.muted, lineHeight: 20, marginBottom: 12 },
+    scoreLine: { fontSize: 11, color: colors.subtle, fontWeight: '800', marginTop: 9, textTransform: 'uppercase', letterSpacing: 0.8 },
     intentionLine: { fontSize: 12, color: colors.accent, lineHeight: 18, fontWeight: '800', marginTop: 10 },
     sectionLabel: { fontSize: 9, letterSpacing: 3, color: colors.subtle, fontWeight: 'bold', marginBottom: 10 },
     seedCard: { backgroundColor: colors.surface, borderRadius: 8, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24, borderWidth: 1, borderColor: colors.border },

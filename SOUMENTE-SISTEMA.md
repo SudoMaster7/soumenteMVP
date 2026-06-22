@@ -136,6 +136,8 @@ O Oraculo Diario gera um foco para o dia. Ele mostra:
 
 No modo atual, pode funcionar com dados mockados para prototipagem. A proposta futura e usar IA real com base nos dados do usuario.
 
+Funcao tecnica atual: `fetchDailyOracle`, em `services/oracleService.ts`.
+
 #### Mentor
 
 O Mentor SouMente e um bot que conversa com o usuario usando os dados do sistema como contexto.
@@ -158,6 +160,8 @@ Ele ajuda respondendo perguntas como:
 - "Onde estou gastando energia demais?"
 
 O objetivo do Mentor e transformar dados pessoais em orientacao pratica.
+
+Funcao tecnica atual: `askSouMenteMentor`, em `services/oracleService.ts`.
 
 #### Padroes
 
@@ -184,6 +188,8 @@ Quando ha dados suficientes, o mapa apresenta descobertas como:
 - risco de perda de ritmo.
 
 Essa aba da ao usuario a sensacao de que o sistema esta aprendendo com ele. O objetivo nao e criar um relatorio tecnico, mas revelar pequenas verdades uteis sobre rotina, energia e continuidade.
+
+Funcao tecnica atual: `getPatternMap`, em `services/patternService.ts`.
 
 #### Rituais
 
@@ -213,6 +219,8 @@ O usuario pode:
 - pedir insights sobre o objetivo.
 
 Ela ajuda a quebrar metas grandes em progresso mensuravel.
+
+Funcao tecnica atual de insight: `getGoalInsight`, em `services/oracleService.ts`.
 
 #### Plano
 
@@ -259,6 +267,8 @@ O usuario pode:
 
 Ele funciona como um diario simbolico para guardar padroes, pensamentos e sinais importantes.
 
+Funcao tecnica atual de reflexao: `getDiaryReflection`, em `services/oracleService.ts`.
+
 ### 8. Relatorio semanal
 
 O Relatorio Semanal transforma registros em uma leitura motivadora.
@@ -283,6 +293,8 @@ Essa sessao existe para dar gas ao usuario. Ela nao serve apenas para avaliar de
 Mesmo quando a semana foi fraca, o relatorio evita culpa e aponta uma acao simples para recomecar.
 
 O usuario tambem pode salvar uma intencao para a semana seguinte. Essa intencao volta para a Home como lembrete de direcao.
+
+Funcoes tecnicas atuais: `generateWeeklyReport`, em `services/reportService.ts`, e `getGrowthProfile` / `saveWeeklyIntention`, em `services/growthService.ts`.
 
 ### 9. Niveis de consciencia
 
@@ -331,7 +343,22 @@ As conquistas ajudam o usuario a perceber que esta construindo uma historia, nao
 
 A area de Perfil concentra configuracoes do usuario, acesso ao relatorio semanal e opcoes gerais da conta.
 
-Ela serve como espaco de controle e ajuste pessoal.
+Escopo minimo esperado para o Perfil:
+
+- editar nome de exibicao;
+- visualizar email da conta;
+- trocar foto ou avatar;
+- alternar tema claro/escuro;
+- configurar notificacoes;
+- definir horario preferido de lembrete;
+- acessar o relatorio semanal;
+- ver status de desenvolvimento/autenticacao;
+- sair da conta ou voltar para a landing page;
+- excluir conta e dados pessoais quando a autenticacao real estiver ativa.
+
+No estado atual de desenvolvimento, o Perfil deve priorizar ajustes locais e acesso rapido ao relatorio. Quando o login real voltar, ele passa a ser tambem a area de privacidade, conta e exclusao de dados.
+
+Ela serve como espaco de controle e ajuste pessoal, evitando que configuracoes fiquem espalhadas pelo app.
 
 ## Como o sistema ajuda o usuario
 
@@ -400,18 +427,46 @@ Mesmo quando ha poucos dados, o sistema reforca:
 
 O SouMente foi preparado para usar IA como diferencial.
 
-A IA pode atuar em:
+A IA nao deve funcionar como um apendice isolado. Ela alimenta partes especificas da experiencia:
 
-- Oraculo Diario;
-- Mentor conversacional;
-- insights de objetivos;
-- Mapa de Padroes;
-- reflexoes do Grimorio;
-- relatorios semanais mais profundos.
+- Oraculo Diario: gera foco, principio e microacao do dia via `fetchDailyOracle`;
+- Mentor conversacional: responde perguntas usando o contexto local via `askSouMenteMentor`;
+- Objetivos: gera leitura pratica de um objetivo via `getGoalInsight`;
+- Grimorio: gera reflexao sobre registros internos via `getDiaryReflection`;
+- Mapa de Padroes: hoje usa leitura local via `getPatternMap`, podendo futuramente receber uma camada narrativa por IA;
+- Relatorio Semanal: hoje usa `generateWeeklyReport` com dados locais, podendo futuramente receber insight narrativo do Super Eu.
 
 No momento, o sistema pode funcionar com respostas mockadas e leituras locais para validar a experiencia sem depender de API externa. Futuramente, a IA pode usar modelos como Qwen ou outro modelo compativel para gerar respostas mais personalizadas.
 
 O ponto principal nao e apenas "ter um chatbot", mas usar os dados do proprio usuario para gerar orientacao util, contextual e acionavel.
+
+### Modo mock e migracao para IA real
+
+O modo mock existe para validar produto, fluxo e linguagem sem depender de custo, latencia ou instabilidade de provedor externo.
+
+Configuracao atual:
+
+- `EXPO_PUBLIC_USE_MOCK_AI=true`: usa respostas locais/mockadas;
+- `EXPO_PUBLIC_USE_MOCK_AI=false`: tenta usar provedor real;
+- `EXPO_PUBLIC_QWEN_API_KEY`: chave do provedor;
+- `EXPO_PUBLIC_QWEN_API_URL`: endpoint compativel com OpenRouter;
+- `EXPO_PUBLIC_QWEN_MODEL`: modelo escolhido.
+
+Plano recomendado de migracao:
+
+1. Validar a experiencia com dados mockados ate existir uso recorrente real.
+2. Ativar IA real primeiro apenas no Mentor e no Oraculo Diario.
+3. Medir se as respostas aumentam retorno ao app, registros no diario e uso do relatorio.
+4. Depois levar IA real para objetivos, grimorio e relatorio semanal.
+5. Migrar chamadas sensiveis para uma API server-side antes de abrir para usuarios externos, para nao expor chaves no bundle web/mobile.
+
+Criterio pratico para sair do mock:
+
+- pelo menos 5 a 10 usuarios ativos testando por mais de 7 dias;
+- fluxos principais estaveis: diario, semente, jardim, super eu e relatorio;
+- prompts revisados;
+- custo estimado por usuario conhecido;
+- fallback local funcionando caso a API falhe.
 
 ## Beneficio principal
 
@@ -446,3 +501,7 @@ Sua forca esta em combinar:
 - IA contextual.
 
 Com isso, o usuario nao apenas registra a vida. Ele aprende a ler os proprios sinais e agir com mais consciencia.
+
+## Documentos complementares
+
+- `SOUMENTE-GAMIFICACAO.md`: define gatilhos numericos de conquistas, formula de pontuacao e tabela dos Niveis de Consciencia para implementacao.
