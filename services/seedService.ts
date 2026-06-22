@@ -101,6 +101,24 @@ export async function getActiveSeed(userId: string): Promise<Seed | null> {
   return data;
 }
 
+export async function getSeeds(userId: string): Promise<Seed[]> {
+  if (isDevUser(userId)) {
+    const seeds = await readLocalSeeds();
+    return seeds
+      .filter(seed => seed.user_id === userId)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+
+  const { data, error } = await supabase
+    .from('seeds')
+    .select('*, roots(*), fruits(*)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function createSeed(userId: string, seed: Partial<Seed>): Promise<Seed> {
   if (isDevUser(userId)) {
     const now = new Date().toISOString();
@@ -181,9 +199,11 @@ export async function updateSeed(
 export async function deleteSeed(seedId: string, userId: string): Promise<void> {
   if (isDevUser(userId)) {
     const seeds = await readLocalSeeds();
+    const seed = seeds.find(current => current.id === seedId && current.user_id === userId);
+    const rootIds = seed?.roots?.map(root => root.id) ?? [];
     await writeLocalSeeds(seeds.filter(seed => seed.id !== seedId || seed.user_id !== userId));
     const completions = await readLocalCompletions();
-    await writeLocalCompletions(completions.filter(completion => completion.user_id !== userId));
+    await writeLocalCompletions(completions.filter(completion => !rootIds.includes(completion.root_id)));
     return;
   }
 

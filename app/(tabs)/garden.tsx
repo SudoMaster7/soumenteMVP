@@ -2,7 +2,7 @@
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Platform,
 } from 'react-native';
-import { useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useSeed } from '@/hooks/useSeed';
@@ -10,15 +10,34 @@ import { RootCard } from '@/components/seed/RootCard';
 import { SeedStatus } from '@/components/seed/SeedStatus';
 import { deleteSeed } from '@/services/seedService';
 import { useTheme, type AppTheme } from '@/lib/theme';
+import type { Seed } from '@/types';
 
 export default function Garden() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
-  const { seed, loading, refetch, userId } = useSeed();
+  const { seed, seeds, loading, refetch, userId } = useSeed();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedSeedId, setSelectedSeedId] = useState<string | null>(null);
 
   useFocusEffect(useCallback(() => { refetch(); }, []));
+
+  useEffect(() => {
+    if (seeds.length === 0) {
+      setSelectedSeedId(null);
+      return;
+    }
+
+    const stillExists = seeds.some(current => current.id === selectedSeedId);
+    if (!selectedSeedId || !stillExists) {
+      setSelectedSeedId(seed?.id ?? seeds[0].id);
+    }
+  }, [seed?.id, seeds, selectedSeedId]);
+
+  const selectedSeed = useMemo(
+    () => seeds.find(current => current.id === selectedSeedId) ?? seed ?? seeds[0] ?? null,
+    [seed, seeds, selectedSeedId]
+  );
 
   async function onRefresh() {
     setRefreshing(true);
@@ -27,10 +46,10 @@ export default function Garden() {
   }
 
   async function handleDeleteSeed() {
-    if (!seed || !userId) return;
+    if (!selectedSeed || !userId) return;
 
     try {
-      await deleteSeed(seed.id, userId);
+      await deleteSeed(selectedSeed.id, userId);
       await refetch();
     } catch (error) {
       console.error('Failed to delete seed', error);
@@ -58,7 +77,7 @@ export default function Garden() {
     );
   }
 
-  if (!seed) {
+  if (!selectedSeed) {
     return (
       <View style={styles.center}>
         <View style={styles.emptyIcon}>
@@ -74,7 +93,7 @@ export default function Garden() {
     );
   }
 
-  const roots = seed.roots || [];
+  const roots = selectedSeed.roots || [];
   const avgStrength = roots.length > 0
     ? Math.round(roots.reduce((acc, r) => acc + (r.strength || 0), 0) / roots.length)
     : 0;
@@ -96,7 +115,20 @@ export default function Garden() {
         </TouchableOpacity>
       </View>
 
-      <SeedStatus status={seed.status as any} name={seed.name} />
+      <Text style={styles.sectionLabel}>TODAS AS SEMENTES</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seedList}>
+        {seeds.map(current => (
+          <SeedPill
+            key={current.id}
+            seed={current}
+            selected={current.id === selectedSeed.id}
+            theme={theme}
+            onPress={() => setSelectedSeedId(current.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <SeedStatus status={selectedSeed.status as any} name={selectedSeed.name} />
 
       <View style={styles.progressCard}>
         <View style={styles.progressHeader}>
@@ -110,7 +142,7 @@ export default function Garden() {
       </View>
 
       <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/seed/edit', params: { seedId: seed.id } })}>
+        <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/seed/edit', params: { seedId: selectedSeed.id } })}>
           <Ionicons name="create-outline" size={16} color={colors.primaryText} />
           <Text style={styles.editBtnText}>Editar</Text>
         </TouchableOpacity>
@@ -123,13 +155,50 @@ export default function Garden() {
       <Text style={styles.sectionLabel}>RAIZES ATIVAS</Text>
       {roots.map(root => <RootCard key={root.id} root={root} userId={userId} onWatered={refetch} />)}
 
-      {seed.why ? (
+      {selectedSeed.why ? (
         <View style={styles.whyCard}>
           <Text style={styles.whyLabel}>POR QUE ISSO IMPORTA</Text>
-          <Text style={styles.whyText}>"{seed.why}"</Text>
+          <Text style={styles.whyText}>"{selectedSeed.why}"</Text>
         </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+function getSeedProgress(seed: Seed) {
+  const roots = seed.roots || [];
+  if (roots.length === 0) return 0;
+  return Math.round(roots.reduce((acc, root) => acc + (root.strength || 0), 0) / roots.length);
+}
+
+function SeedPill({
+  seed,
+  selected,
+  theme,
+  onPress,
+}: {
+  seed: Seed;
+  selected: boolean;
+  theme: AppTheme;
+  onPress: () => void;
+}) {
+  const colors = theme.colors;
+  const progress = getSeedProgress(seed);
+  return (
+    <TouchableOpacity
+      style={[
+        makeStyles(theme).seedPill,
+        selected && { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.82}
+    >
+      <View style={makeStyles(theme).seedPillHeader}>
+        <Ionicons name={selected ? 'leaf' : 'leaf-outline'} size={16} color={selected ? colors.primary : colors.muted} />
+        <Text style={[makeStyles(theme).seedPillTitle, selected && { color: colors.primary }]} numberOfLines={1}>{seed.name}</Text>
+      </View>
+      <Text style={makeStyles(theme).seedPillMeta}>{seed.status} · {progress}%</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -154,6 +223,11 @@ function makeStyles(theme: AppTheme) {
     deleteBtn: { flex: 1, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.dangerSoft, borderRadius: 12, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
     deleteBtnText: { color: colors.danger, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
     progressCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
+    seedList: { gap: 10, paddingBottom: 14 },
+    seedPill: { width: 178, minHeight: 78, backgroundColor: colors.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between' },
+    seedPillHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+    seedPillTitle: { flex: 1, fontSize: 13, color: colors.text, fontWeight: '800' },
+    seedPillMeta: { fontSize: 11, color: colors.muted, textTransform: 'capitalize' },
     progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
     progressLabel: { fontSize: 9, letterSpacing: 3, color: colors.muted, fontWeight: '800' },
     progressPct: { fontSize: 15, color: colors.success, fontWeight: '800' },

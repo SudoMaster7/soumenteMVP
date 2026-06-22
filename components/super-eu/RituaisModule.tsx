@@ -19,9 +19,6 @@ const DAYS = [
 ];
 
 const ICONS = ['*', 'o', '+', '#', '@', '~', '^', '!', '%', '&'];
-const DAY_SIZE = 28;
-const DAY_GAP = 4;
-const DAYS_WIDTH = DAY_SIZE * 7 + DAY_GAP * 6;
 
 export default function RituaisModule() {
   const { theme } = useTheme();
@@ -110,28 +107,18 @@ export default function RituaisModule() {
         </View>
       </View>
 
-      <View style={styles.weekTable}>
-        <View style={styles.tableHeader}>
-          <Text style={styles.tableTitle}>Ritual</Text>
-          <View style={styles.daysHeader}>
-            {DAYS.map((day, i) => (
-              <View key={`${day.label}-${i}`} style={[styles.dayHeadCell, i === todayIdx && styles.dayHeadToday]}>
-                <Text style={[styles.dayShort, i === todayIdx && styles.dayShortToday]}>{day.short}</Text>
-                <Text style={[styles.dayLabel, i === todayIdx && styles.dayLabelToday]}>{day.label}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
+      <View style={styles.ritualList}>
         {habits.map((habit) => {
           const doneCount = habit.days.filter(Boolean).length;
           return (
-            <View key={habit.id} style={styles.habitRow}>
-              <View style={styles.habitLeft}>
-                <View style={styles.habitIconWrap}><Text style={styles.habitIcon}>{habit.icon}</Text></View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.habitName} numberOfLines={1}>{habit.name}</Text>
-                  <Text style={styles.habitMeta}>{doneCount}/7 dias nesta semana</Text>
+            <View key={habit.id} style={styles.habitCard}>
+              <View style={styles.habitHeader}>
+                <View style={styles.habitLeft}>
+                  <View style={styles.habitIconWrap}><Text style={styles.habitIcon}>{habit.icon}</Text></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.habitName} numberOfLines={2}>{habit.name}</Text>
+                    <Text style={styles.habitMeta}>{doneCount}/7 dias nesta semana</Text>
+                  </View>
                 </View>
                 <View style={styles.rowActions}>
                   <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(habit)} accessibilityRole="button" accessibilityLabel={`Editar ritual ${habit.name}`}>
@@ -143,7 +130,7 @@ export default function RituaisModule() {
                 </View>
               </View>
 
-              <View style={styles.dotsRow}>
+              <View style={styles.daysGrid}>
                 {habit.days.map((done, di) => (
                   <TouchableOpacity
                     key={di}
@@ -154,7 +141,12 @@ export default function RituaisModule() {
                     accessibilityState={{ checked: done }}
                     accessibilityLabel={`${habit.name}, ${DAYS[di].label}`}
                   >
-                    {done ? <Ionicons name="checkmark" size={17} color={colors.primaryText} /> : <Text style={styles.emptyMark}>{DAYS[di].short}</Text>}
+                    <Ionicons
+                      name={done ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={16}
+                      color={done ? colors.primaryText : di === todayIdx ? colors.primary : colors.subtle}
+                    />
+                    <Text style={[styles.dayButtonLabel, done && styles.dayButtonLabelDone]}>{DAYS[di].label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -221,30 +213,23 @@ function makeStyles(theme: AppTheme) {
     statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 13, borderWidth: 1, borderColor: colors.border, alignItems: 'center', minHeight: 76 },
     statValue: { fontSize: 20, fontWeight: '800', color: colors.text, marginBottom: 4 },
     statLabel: { fontSize: 8, letterSpacing: 1.5, color: colors.muted, textAlign: 'center' },
-    weekTable: { backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 12 },
-    tableHeader: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, gap: 10 },
-    tableTitle: { flex: 1, fontSize: 10, letterSpacing: 2, color: colors.muted, fontWeight: '800', textTransform: 'uppercase', paddingLeft: 2 },
-    daysHeader: { width: DAYS_WIDTH, flexDirection: 'row', gap: DAY_GAP },
-    dayHeadCell: { width: DAY_SIZE, alignItems: 'center', borderRadius: 8, paddingVertical: 4 },
-    dayHeadToday: { backgroundColor: colors.primarySoft },
-    dayShort: { fontSize: 11, color: colors.text, fontWeight: '800' },
-    dayShortToday: { color: colors.primary },
-    dayLabel: { fontSize: 8, color: colors.muted, marginTop: 1 },
-    dayLabelToday: { color: colors.primary, fontWeight: '700' },
-    habitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border },
+    ritualList: { gap: 10, marginBottom: 12 },
+    habitCard: { backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 12 },
+    habitHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 12 },
     habitLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
     habitIconWrap: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
     habitIcon: { fontSize: 16, color: colors.accent, fontWeight: '800' },
     habitName: { fontSize: 14, color: colors.text, fontWeight: '800' },
     habitMeta: { fontSize: 11, color: colors.muted, marginTop: 2 },
-    dotsRow: { width: DAYS_WIDTH, flexDirection: 'row', gap: DAY_GAP },
     rowActions: { flexDirection: 'row', gap: 6, marginLeft: 2 },
     editBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
     deleteBtn: { width: 30, height: 30, borderRadius: 8, backgroundColor: colors.dangerSoft, alignItems: 'center', justifyContent: 'center' },
-    dayButton: { width: DAY_SIZE, height: DAY_SIZE, borderRadius: 9, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center' },
+    daysGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    dayButton: { flexGrow: 1, flexBasis: '30%', minWidth: 76, height: 44, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 8 },
     dayButtonToday: { borderColor: colors.primary, borderWidth: 2 },
     dayButtonDone: { backgroundColor: colors.success, borderColor: colors.success },
-    emptyMark: { fontSize: 10, color: colors.subtle, fontWeight: '800' },
+    dayButtonLabel: { fontSize: 12, color: colors.text, fontWeight: '800' },
+    dayButtonLabelDone: { color: colors.primaryText },
     addBtn: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 10, padding: 14, alignItems: 'center', justifyContent: 'center', marginTop: 4, marginBottom: 16, flexDirection: 'row', gap: 8 },
     addBtnTxt: { color: colors.primary, fontSize: 13, fontWeight: '800', letterSpacing: 1 },
     principleCard: { flexDirection: 'row', gap: 12, backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border },
