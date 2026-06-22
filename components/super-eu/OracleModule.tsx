@@ -10,17 +10,21 @@ export default function OracleModule() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
-  const { oracle, oracleDateKey, setOracle, goals, habits, finance } = useSuperEuStore();
+  const { oracle, oracleDateKey, setOracle, goals, habits, purchases, finance, diary } = useSuperEuStore();
   const [loading, setLoading] = useState(false);
+  const [focusCounter, setFocusCounter] = useState(0);
   const todayKey = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (oracleDateKey !== todayKey) loadOracle();
   }, []);
 
-  async function loadOracle() {
+  async function loadOracle(forceNew = false) {
     setLoading(true);
-    const result = await fetchDailyOracle();
+    const nextCounter = forceNew ? focusCounter + 1 : focusCounter;
+    const seed = forceNew ? `${todayKey}-${nextCounter}-${Date.now()}` : todayKey;
+    const result = await fetchDailyOracle({ goals, habits, purchases, finance, diary }, seed);
+    if (forceNew) setFocusCounter(nextCounter);
     setOracle(result, todayKey);
     setLoading(false);
   }
@@ -51,9 +55,21 @@ export default function OracleModule() {
           <>
             <Text style={styles.oracleQuote}>"{oracle?.quote ?? '...'}"</Text>
             <Text style={styles.oraclePrinciple}>{oracle?.principle ?? ''}</Text>
+            {oracle?.focus ? (
+              <View style={styles.focusBox}>
+                <Text style={styles.focusLabel}>FOCO DO DIA</Text>
+                <Text style={styles.focusText}>{oracle.focus}</Text>
+              </View>
+            ) : null}
+            {oracle?.action ? (
+              <View style={styles.actionBox}>
+                <Ionicons name="trail-sign-outline" size={16} color={colors.accent} />
+                <Text style={styles.actionText}>{oracle.action}</Text>
+              </View>
+            ) : null}
           </>
         )}
-        <TouchableOpacity onPress={loadOracle} style={styles.newOracleBtn} disabled={loading}>
+        <TouchableOpacity onPress={() => loadOracle(true)} style={styles.newOracleBtn} disabled={loading}>
           <Text style={styles.newOracleTxt}>Gerar novo foco</Text>
           <Ionicons name="refresh" size={15} color={colors.primary} />
         </TouchableOpacity>
@@ -111,6 +127,11 @@ function makeStyles(theme: AppTheme) {
     oracleHint: { fontSize: 12, color: colors.muted, marginTop: 3 },
     oracleQuote: { fontSize: 18, color: colors.text, fontStyle: 'italic', lineHeight: 28, marginBottom: 12 },
     oraclePrinciple: { fontSize: 11, color: colors.muted, letterSpacing: 1, marginBottom: 20 },
+    focusBox: { backgroundColor: colors.primarySoft, borderRadius: 8, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.border },
+    focusLabel: { fontSize: 9, color: colors.primary, fontWeight: '900', letterSpacing: 1.8, marginBottom: 4 },
+    focusText: { fontSize: 15, color: colors.text, fontWeight: '900' },
+    actionBox: { flexDirection: 'row', gap: 9, alignItems: 'flex-start', backgroundColor: colors.backgroundAlt, borderRadius: 8, padding: 12, marginBottom: 16 },
+    actionText: { flex: 1, fontSize: 13, color: colors.text, lineHeight: 19 },
     newOracleBtn: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 6 },
     newOracleTxt: { fontSize: 12, color: colors.primary, letterSpacing: 0.8, fontWeight: '800' },
     statsRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },

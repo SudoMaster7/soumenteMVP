@@ -44,7 +44,7 @@ const findMood = (value: string): MoodOption =>
 export default function GrimorioModule() {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const { diary, addDiaryEntry, updateDiaryEntry, updateDiaryReflection, deleteDiaryEntry } = useSuperEuStore();
+  const { goals, habits, purchases, finance, diary, addDiaryEntry, updateDiaryEntry, updateDiaryReflection, deleteDiaryEntry } = useSuperEuStore();
   const [showAdd, setShowAdd] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [form, setForm] = useState({ mood: MOODS[0].value, text: '', tags: '' });
@@ -95,7 +95,7 @@ export default function GrimorioModule() {
   async function handleReflection(entry: SEDiaryEntry) {
     setLoadingReflection(entry.id);
     const mood = findMood(entry.mood).label;
-    const reflection = await getDiaryReflection(mood, entry.text);
+    const reflection = await getDiaryReflection(mood, entry.text, { goals, habits, purchases, finance, diary });
     updateDiaryReflection(entry.id, reflection);
     setLoadingReflection(null);
   }

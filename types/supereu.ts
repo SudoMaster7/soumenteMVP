@@ -47,6 +47,8 @@ export interface SEDiaryEntry {
 export interface OraclePhrase {
   quote: string;
   principle: string;
+  focus?: string;
+  action?: string;
 }
 
 export type SuperEuModule = 'oracle' | 'mentor' | 'rituais' | 'objetivos' | 'plano' | 'financas' | 'grimorio';

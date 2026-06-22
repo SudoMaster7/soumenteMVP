@@ -36,16 +36,16 @@ export default function Home() {
   const { todayEntry, streak, loading: diaryLoading, refetch: refetchDiary } = useDiary();
   const {
     oracle, oracleDateKey, setOracle,
-    habits, goals, purchases, finance,
+    habits, goals, purchases, finance, diary,
   } = useSuperEuStore();
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (oracleDateKey !== todayKey) {
-      fetchDailyOracle().then((result) => setOracle(result, todayKey));
+      fetchDailyOracle({ goals, habits, purchases, finance, diary }).then((result) => setOracle(result, todayKey));
     }
-  }, [oracleDateKey, setOracle, todayKey]);
+  }, [diary, finance, goals, habits, oracleDateKey, purchases, setOracle, todayKey]);
 
   useFocusEffect(useCallback(() => {
     refetchSeed();
@@ -98,6 +98,7 @@ export default function Home() {
           </View>
           <Text style={styles.oracleQuote}>"{oracle.quote}"</Text>
           <Text style={styles.oraclePrinciple}>{oracle.principle}</Text>
+          {oracle.focus ? <Text style={styles.oracleFocus}>{oracle.focus}</Text> : null}
         </TouchableOpacity>
       )}
 
@@ -202,6 +203,7 @@ function makeStyles(theme: AppTheme) {
     oracleTag: { fontSize: 8, letterSpacing: 3, color: colors.primary, fontWeight: 'bold' },
     oracleQuote: { fontSize: 17, color: colors.text, fontStyle: 'italic', lineHeight: 26, marginBottom: 10 },
     oraclePrinciple: { fontSize: 10, color: colors.muted, letterSpacing: 1.4 },
+    oracleFocus: { fontSize: 12, color: colors.primary, fontWeight: '800', marginTop: 10 },
     mirrorGrid: { flexDirection: 'row', gap: 10, marginBottom: 10 },
     mirrorCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 8, padding: 14, borderWidth: 1, borderColor: colors.border, minHeight: 110 },
     mirrorValue: { fontSize: 20, color: colors.text, fontWeight: '800', marginBottom: 8 },

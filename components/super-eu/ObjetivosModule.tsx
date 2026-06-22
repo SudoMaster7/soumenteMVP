@@ -57,7 +57,7 @@ const formatDaysLeft = (deadline: string) => {
 export default function ObjetivosModule() {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const { goals, addGoal, updateGoal, updateGoalProgress, deleteGoal } = useSuperEuStore();
+  const { goals, habits, purchases, finance, diary, addGoal, updateGoal, updateGoalProgress, deleteGoal } = useSuperEuStore();
   const [showAdd, setShowAdd] = useState(false);
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [insight, setInsight] = useState<{ goalId: string; text: string } | null>(null);
@@ -120,7 +120,7 @@ export default function ObjetivosModule() {
   async function handleInsight(goal: SEGoal) {
     setLoadingInsight(goal.id);
     setInsight({ goalId: goal.id, text: '' });
-    const text = await getGoalInsight(goal);
+    const text = await getGoalInsight(goal, { goals, habits, purchases, finance, diary });
     setInsight({ goalId: goal.id, text });
     setLoadingInsight(null);
   }

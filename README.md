@@ -72,9 +72,13 @@ Crie um arquivo `.env` na raiz usando `.env.exemple` como base:
 EXPO_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=sua_anon_key
 EXPO_PUBLIC_ANTHROPIC_KEY=cole_aqui_depois
+EXPO_PUBLIC_QWEN_API_KEY=cole_aqui_depois
+EXPO_PUBLIC_QWEN_API_URL=https://openrouter.ai/api/v1/chat/completions
+EXPO_PUBLIC_QWEN_MODEL=qwen/qwen3-14b:free
 ```
 
 As variaveis com prefixo `EXPO_PUBLIC_` ficam disponiveis no bundle do app. Nao coloque chaves secretas privadas nelas.
+Para o MVP pessoal, o Mentor tenta usar Qwen por uma API compativel com OpenAI/OpenRouter. Para producao, mova essa chamada para uma funcao serverless ou Edge Function para nao expor a chave.
 
 ## Supabase
 
@@ -139,6 +143,9 @@ Na Vercel, configure as mesmas variaveis:
 EXPO_PUBLIC_SUPABASE_URL
 EXPO_PUBLIC_SUPABASE_ANON_KEY
 EXPO_PUBLIC_ANTHROPIC_KEY
+EXPO_PUBLIC_QWEN_API_KEY
+EXPO_PUBLIC_QWEN_API_URL
+EXPO_PUBLIC_QWEN_MODEL
 ```
 
 Depois use:
