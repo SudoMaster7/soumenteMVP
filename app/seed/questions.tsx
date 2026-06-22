@@ -6,22 +6,26 @@ import {
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { getCurrentUser } from '@/services/authService';
-import { plantSeed } from '@/services/seedService';
 import { useTheme, type AppTheme } from '@/lib/theme';
 
 const DEFAULT_QUESTIONS = [
-  'Por que isso e importante para voce agora?',
-  'Qual obstaculo voce precisa encarar primeiro?',
-  'O que voce ja tem que pode te ajudar?',
-  'Como voce vai saber que esta avancando?',
+  'Por que isso é importante para você agora?',
+  'Qual obstáculo você precisa encarar primeiro?',
+  'O que você já tem que pode te ajudar?',
+  'Como você vai saber que está avançando?',
 ];
 
 export default function Questions() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
-  const { seedId, seedName } = useLocalSearchParams<{ seedId: string; seedName: string }>();
+  const { seedId, seedName, seedType, seedWhy, seedForWhom } = useLocalSearchParams<{
+    seedId: string;
+    seedName: string;
+    seedType?: string;
+    seedWhy?: string;
+    seedForWhom?: string;
+  }>();
   const [answers, setAnswers] = useState<string[]>(['', '', '', '']);
   const [planting, setPlanting] = useState(false);
 
@@ -33,7 +37,7 @@ export default function Questions() {
     });
   }
 
-  async function handlePlant() {
+  function handlePlant() {
     const filled = answers.filter(a => a.trim().length > 0);
     if (filled.length < 2) {
       Alert.alert('Responda pelo menos 2 perguntas para plantar sua semente.');
@@ -42,17 +46,18 @@ export default function Questions() {
     if (!seedId) return;
 
     setPlanting(true);
-    try {
-      const user = await getCurrentUser();
-      if (!user) { setPlanting(false); return; }
-      await plantSeed(seedId, user.id, answers);
-      router.replace({ pathname: '/seed/planted', params: { seedName } });
-    } catch (error) {
-      console.error('Failed to plant seed', error);
-      Alert.alert('Erro', 'Nao foi possivel plantar. Tente novamente.');
-    } finally {
-      setPlanting(false);
-    }
+    router.push({
+      pathname: '/seed/roots-ai',
+      params: {
+        seedId,
+        seedName,
+        seedType,
+        seedWhy,
+        seedForWhom,
+        answersJson: JSON.stringify(answers),
+      },
+    });
+    setPlanting(false);
   }
 
   return (
@@ -65,7 +70,7 @@ export default function Questions() {
 
         <Text style={styles.eyebrow}>RAIZES DA SEMENTE</Text>
         <Text style={styles.title}>De clareza para "{seedName}"</Text>
-        <Text style={styles.subtitle}>Nao precisa escrever bonito. Precisa ser verdadeiro o bastante para virar acao.</Text>
+        <Text style={styles.subtitle}>Não precisa escrever bonito. Precisa ser verdadeiro o bastante para virar ação.</Text>
 
         {DEFAULT_QUESTIONS.map((question, index) => (
           <View key={question} style={styles.questionBlock}>
@@ -89,8 +94,8 @@ export default function Questions() {
         <TouchableOpacity style={[styles.plantBtn, planting && styles.plantBtnDisabled]} onPress={handlePlant} disabled={planting}>
           {planting ? <ActivityIndicator color={colors.primaryText} /> : (
             <>
-              <Text style={styles.plantBtnText}>Plantar semente</Text>
-              <Ionicons name="leaf" size={18} color={colors.primaryText} />
+              <Text style={styles.plantBtnText}>Gerar raízes</Text>
+              <Ionicons name="sparkles-outline" size={18} color={colors.primaryText} />
             </>
           )}
         </TouchableOpacity>

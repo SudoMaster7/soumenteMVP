@@ -44,7 +44,7 @@ const EMOTION_LABELS: Record<EmotionType | string, string> = {
   anxious: 'Ansioso',
   reflective: 'Reflexivo',
   joyful: 'Alegre',
-  melancholic: 'Melancolico',
+  melancholic: 'Melancólico',
 };
 
 function countEmotions(entries: DiaryEntry[]) {
@@ -66,45 +66,45 @@ function getRootProgress(roots: Root[]) {
 }
 
 function buildHeadline(registeredDays: number) {
-  if (registeredDays >= 6) return 'Voce esta criando uma trilha forte.';
-  if (registeredDays >= 4) return 'A semana teve consistencia real.';
+  if (registeredDays >= 6) return 'Você está criando uma trilha forte.';
+  if (registeredDays >= 4) return 'A semana teve consistência real.';
   if (registeredDays >= 2) return 'A semana ainda tem sinais importantes.';
-  return 'Um registro ja e uma porta aberta.';
+  return 'Um registro já é uma porta aberta.';
 }
 
 function buildPattern(entries: DiaryEntry[], dominantLabel: string) {
   const deepEntries = entries.filter(entry => entry.dimension === 'deep' || entry.dimension === 'transformative').length;
   if (entries.length >= 5) {
-    return `Seu padrao principal foi ${dominantLabel.toLowerCase()}, mas o ponto mais forte e a repeticao: voce voltou varias vezes para se observar. Isso cria memoria emocional e reduz a chance de viver a semana no automatico.`;
+    return `Seu padrão principal foi ${dominantLabel.toLowerCase()}, mas o ponto mais forte é a repetição: você voltou várias vezes para se observar. Isso cria memória emocional e reduz a chance de viver a semana no automático.`;
   }
   if (deepEntries > 0) {
-    return `Mesmo com poucos registros, houve pelo menos um momento profundo. Isso vale muito: uma percepcao bem vista pode mudar mais do que varios dias no piloto automatico.`;
+    return `Mesmo com poucos registros, houve pelo menos um momento profundo. Isso vale muito: uma percepção bem vista pode mudar mais do que vários dias no piloto automático.`;
   }
-  return `A semana ainda parece fragmentada. O relatorio nao esta te cobrando perfeicao; ele esta mostrando onde criar um pequeno ponto de retorno.`;
+  return `A semana ainda parece fragmentada. O relatório não está te cobrando perfeição; ele está mostrando onde criar um pequeno ponto de retorno.`;
 }
 
 function buildWin(registeredDays: number, rootProgress: number) {
   if (registeredDays >= 5 && rootProgress >= 50) {
-    return 'Voce combinou consciencia com acao. Esse e o tipo de semana que faz uma semente ganhar corpo.';
+    return 'Você combinou consciência com ação. Esse é o tipo de semana que faz uma semente ganhar corpo.';
   }
   if (registeredDays >= 3) {
-    return 'Voce manteve contato consigo mesmo mais de uma vez. Isso ja e uma vitoria de continuidade.';
+    return 'Você manteve contato consigo mesmo mais de uma vez. Isso já é uma vitória de continuidade.';
   }
   if (rootProgress > 0) {
-    return 'Mesmo com poucos registros, alguma raiz recebeu energia. O jardim nao parou.';
+    return 'Mesmo com poucos registros, alguma raiz recebeu energia. O jardim não parou.';
   }
-  return 'Voce voltou para olhar. Esse retorno e o primeiro gesto de cuidado.';
+  return 'Você voltou para olhar. Esse retorno é o primeiro gesto de cuidado.';
 }
 
 function buildNextAction(registeredDays: number, roots: Root[]) {
   const weakestRoot = [...roots].sort((a, b) => (a.strength || 0) - (b.strength || 0))[0];
   if (weakestRoot) {
-    return `Nas proximas 24h, regue a raiz "${weakestRoot.name}" uma vez. Pequeno, claro, sem negociar com a mente.`;
+    return `Nas próximas 24h, regue a raiz "${weakestRoot.name}" uma vez. Pequeno, claro, sem negociar com a mente.`;
   }
   if (registeredDays < 3) {
-    return 'Nos proximos 3 dias, registre uma emocao por dia. Uma frase basta.';
+    return 'Nos próximos 3 dias, registre uma emoção por dia. Uma frase basta.';
   }
-  return 'Escolha uma acao de 15 minutos que prove para voce que a semana continua em movimento.';
+  return 'Escolha uma ação de 15 minutos que prove para você que a semana continua em movimento.';
 }
 
 export async function generateWeeklyReport(userId: string): Promise<WeeklyReportData> {
@@ -145,11 +145,11 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
               })),
             }
           : null,
-        headline: 'Seu relatorio esta esperando seus primeiros sinais.',
-        pattern: 'Registre pelo menos um dia no diario para revelar padroes da semana.',
-        win: 'Abrir esta tela ja mostra intencao de acompanhar seu processo.',
-        nextAction: 'Hoje, registre uma emocao e uma frase curta sobre o que ela esta tentando mostrar.',
-        encouragement: 'Nao precisa comecar grande. Precisa comecar visivel.',
+        headline: 'Seu relatório está esperando seus primeiros sinais.',
+        pattern: 'Registre pelo menos um dia no diário para revelar padrões da semana.',
+        win: 'Abrir esta tela já mostra intenção de acompanhar seu processo.',
+        nextAction: 'Hoje, registre uma emoção e uma frase curta sobre o que ela está tentando mostrar.',
+        encouragement: 'Não precisa começar grande. Precisa começar visível.',
         intention,
         consciousness: growth.level,
         achievements: growth.unlockedAchievements,
@@ -180,8 +180,8 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
         win: buildWin(registeredDays, rootProgress),
         nextAction: buildNextAction(registeredDays, roots),
         encouragement: registeredDays >= 5
-          ? 'Voce nao precisa recomecar. Precisa proteger o ritmo que ja apareceu.'
-          : 'A proxima semana nao pede culpa. Pede um ritual pequeno repetido com honestidade.',
+          ? 'Você não precisa recomeçar. Precisa proteger o ritmo que já apareceu.'
+          : 'A próxima semana não pede culpa. Pede um ritual pequeno repetido com honestidade.',
         intention,
         consciousness: growth.level,
         achievements: growth.unlockedAchievements,

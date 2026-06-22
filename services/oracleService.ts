@@ -7,6 +7,7 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 const QWEN_API_KEY = process.env.EXPO_PUBLIC_QWEN_API_KEY ?? '';
 const QWEN_API_URL = process.env.EXPO_PUBLIC_QWEN_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
+const QWEN_PROXY_URL = process.env.EXPO_PUBLIC_QWEN_PROXY_URL ?? '/api/qwen';
 const QWEN_MODEL = process.env.EXPO_PUBLIC_QWEN_MODEL ?? 'qwen/qwen3-14b:free';
 const USE_MOCK_AI = (process.env.EXPO_PUBLIC_USE_MOCK_AI ?? 'true') !== 'false';
 
@@ -23,8 +24,20 @@ type ChatMessage = {
   content: string;
 };
 
+export type GeneratedRootSuggestion = {
+  name: string;
+  description: string;
+  type: 'daily' | 'weekly' | 'milestone';
+  frequency: number;
+};
+
 function hasUsableKey(key: string) {
   return key.length > 20 && !key.includes('cole_aqui');
+}
+
+function getQwenChatUrl() {
+  const cleanUrl = QWEN_API_URL.replace(/\/$/, '');
+  return cleanUrl.endsWith('/chat/completions') ? cleanUrl : `${cleanUrl}/chat/completions`;
 }
 
 function hashSeed(seed: string) {
@@ -34,46 +47,45 @@ function hashSeed(seed: string) {
 
 function getMockOracle(context?: UserContext, seed = new Date().toISOString()): OraclePhrase {
   const variables = buildUserVariables(context);
-  const balanceTone = variables.balance >= 0 ? 'expansao' : 'ajuste';
+  const balanceTone = variables.balance >= 0 ? 'expansão' : 'ajuste';
   const ritualTone = variables.completedToday > 0 ? 'continuidade' : 'primeiro movimento';
-  const goalTone = variables.averageGoalProgress >= 50 ? 'lapidacao' : 'ignicao';
 
   const messages: OraclePhrase[] = [
     {
       quote: `O dia pede ${ritualTone}: uma pequena marca abre passagem para o restante.`,
       principle: 'Lei da Causalidade',
       focus: 'Marcar o primeiro rito',
-      action: `Complete 1 ritual simples e volte para marcar no painel. Hoje voce esta em ${variables.completedToday}/${variables.totalHabits}.`,
+      action: `Complete 1 ritual simples e volte para marcar no painel. Hoje você está em ${variables.completedToday}/${variables.totalHabits}.`,
     },
     {
-      quote: `Sua obra esta em ${variables.averageGoalProgress}%. Nao force o portal inteiro: empurre a proxima dobradica.`,
+      quote: `Sua obra está em ${variables.averageGoalProgress}%. Não force o portal inteiro: empurre a próxima dobradiça.`,
       principle: 'Solve et Coagula',
       focus: 'Mover um objetivo 5%',
       action: 'Escolha um objetivo, defina uma tarefa de 15 minutos e use o +5 apenas depois de executar.',
     },
     {
-      quote: `O fluxo material mostra ${balanceTone}. Dinheiro tambem e energia: observe para onde ele esta obedecendo.`,
-      principle: 'Lei da Correspondencia',
-      focus: 'Revisar uma saida',
-      action: 'Abra Financas e nomeie uma despesa que pode ser reduzida, adiada ou transformada em investimento.',
+      quote: `O fluxo material mostra ${balanceTone}. Dinheiro também é energia: observe para onde ele está obedecendo.`,
+      principle: 'Lei da Correspondência',
+      focus: 'Revisar uma saída',
+      action: 'Abra Finanças e nomeie uma despesa que pode ser reduzida, adiada ou transformada em investimento.',
     },
     {
-      quote: 'O que voce registra deixa de ser neblina e vira mapa. O Grimorio guarda a trilha do seu proprio simbolo.',
+      quote: 'O que você registra deixa de ser neblina e vira mapa. O Grimório guarda a trilha do seu próprio símbolo.',
       principle: 'Daath, Conhecimento',
       focus: 'Escrever uma linha',
-      action: `Registre no Grimorio uma frase sobre o estado "${variables.latestDiaryMood}" e adicione uma tag sincera.`,
+      action: `Registre no Grimório uma frase sobre o estado "${variables.latestDiaryMood}" e adicione uma tag sincera.`,
     },
     {
-      quote: `Ha ${variables.pendingPurchases} itens pendentes no plano. Nem todo desejo e prioridade; alguns sao apenas ruido com bom figurino.`,
+      quote: `Há ${variables.pendingPurchases} itens pendentes no plano. Nem todo desejo é prioridade; alguns são apenas ruído com bom figurino.`,
       principle: 'Lei da Polaridade',
       focus: 'Escolher uma prioridade',
-      action: 'No Plano, marque um item como essencial ou remova algo que nao conversa com sua fase atual.',
+      action: 'No Plano, marque um item como essencial ou remova algo que não conversa com sua fase atual.',
     },
     {
-      quote: 'A magia de hoje nao esta em fazer muito. Esta em fazer o suficiente com presenca total.',
+      quote: 'A magia de hoje não está em fazer muito. Está em fazer o suficiente com presença total.',
       principle: 'Tiphereth, Centro',
       focus: 'Fazer menos, melhor',
-      action: 'Escolha uma unica acao antes de abrir outra tela. Conclua, registre e pare por um minuto.',
+      action: 'Escolha uma única ação antes de abrir outra tela. Conclua, registre e pare por um minuto.',
     },
   ];
 
@@ -85,7 +97,7 @@ function getFallbackOracle(seed = new Date().toISOString().slice(0, 10)): Oracle
   return {
     ...base,
     focus: 'Voltar ao essencial',
-    action: 'Escolha uma microacao e registre o avanco antes de dormir.',
+    action: 'Escolha uma microação e registre o avanço antes de dormir.',
   };
 }
 
@@ -133,8 +145,8 @@ function compactContext(context: UserContext) {
 }
 
 function getContextBlock(context?: UserContext) {
-  if (!context) return 'Contexto do usuario: nao fornecido.';
-  return `Contexto do usuario em JSON compacto:\n${compactContext(context)}`;
+  if (!context) return 'Contexto do usuário: não fornecido.';
+  return `Contexto do usuário em JSON compacto:\n${compactContext(context)}`;
 }
 
 function buildUserVariables(context?: UserContext) {
@@ -205,17 +217,20 @@ async function callClaude(prompt: string, maxTokens = 300): Promise<string | nul
 
 async function callQwen(messages: { role: 'system' | 'user' | 'assistant'; content: string }[], maxTokens = 500): Promise<string | null> {
   if (USE_MOCK_AI) return null;
-  if (!hasUsableKey(QWEN_API_KEY)) return null;
+  const useProxy = Platform.OS === 'web';
+  if (!useProxy && !hasUsableKey(QWEN_API_KEY)) return null;
 
   try {
-    const res = await fetch(QWEN_API_URL, {
+    const res = await fetch(useProxy ? QWEN_PROXY_URL : getQwenChatUrl(), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${QWEN_API_KEY}`,
-        'HTTP-Referer': 'https://soumente.app',
-        'X-Title': 'SouMente',
-      },
+      headers: useProxy
+        ? { 'Content-Type': 'application/json' }
+        : {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${QWEN_API_KEY}`,
+            'HTTP-Referer': 'https://soumente.app',
+            'X-Title': 'SouMente',
+          },
       body: JSON.stringify({
         model: QWEN_MODEL,
         messages,
@@ -245,13 +260,152 @@ async function callBestModel(prompt: string, maxTokens = 350): Promise<string | 
   return callClaude(prompt, maxTokens);
 }
 
+function cleanJsonText(text: string) {
+  return text.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+}
+
+function normalizeGeneratedRoots(value: unknown): GeneratedRootSuggestion[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item): GeneratedRootSuggestion => {
+      const raw = item as Partial<GeneratedRootSuggestion>;
+      const type = raw.type === 'weekly' || raw.type === 'milestone' ? raw.type : 'daily';
+      return {
+        name: String(raw.name || '').trim(),
+        description: String(raw.description || '').trim(),
+        type,
+        frequency: Math.max(1, Number(raw.frequency) || 1),
+      };
+    })
+    .filter((item) => item.name.length > 0)
+    .slice(0, 5);
+}
+
+function rotateRoots(roots: GeneratedRootSuggestion[], variant = 0) {
+  const offset = Math.abs(variant) % roots.length;
+  return [...roots.slice(offset), ...roots.slice(0, offset)].slice(0, 3);
+}
+
+function getMockRoots(seedType?: string, variant = 0): GeneratedRootSuggestion[] {
+  const base: GeneratedRootSuggestion[] = [
+    {
+      name: 'Ação mínima diária',
+      description: 'Fazer por 10 a 15 minutos uma ação que prove movimento real.',
+      type: 'daily',
+      frequency: 1,
+    },
+    {
+      name: 'Registro de aprendizado',
+      description: 'Anotar o que funcionou, o que travou e qual será o próximo ajuste.',
+      type: 'daily',
+      frequency: 1,
+    },
+    {
+      name: 'Revisão semanal',
+      description: 'Olhar o progresso da semente e escolher uma prioridade para a semana.',
+      type: 'weekly',
+      frequency: 1,
+    },
+    {
+      name: 'Bloqueio visível',
+      description: 'Nomear o obstáculo mais provável do dia e escolher uma resposta simples.',
+      type: 'daily',
+      frequency: 1,
+    },
+    {
+      name: 'Prova de progresso',
+      description: 'Registrar uma evidência pequena de que a semente recebeu energia hoje.',
+      type: 'daily',
+      frequency: 1,
+    },
+    {
+      name: 'Marco de sete dias',
+      description: 'Definir um resultado observável para conquistar até a próxima semana.',
+      type: 'milestone',
+      frequency: 1,
+    },
+  ];
+
+  if (seedType === 'finance') {
+    return rotateRoots([
+      { name: 'Registrar gasto principal', description: 'Nomear uma saída importante do dia e decidir se ela se repete.', type: 'daily', frequency: 1 },
+      { name: 'Poupar valor pequeno', description: 'Separar um valor mínimo antes de gastar com desejos.', type: 'weekly', frequency: 1 },
+      { name: 'Revisar fluxo da semana', description: 'Comparar entradas, saídas e uma escolha que pode melhorar.', type: 'weekly', frequency: 1 },
+      { name: 'Cortar uma fuga', description: 'Identificar uma despesa automática que não combina com a semente.', type: 'weekly', frequency: 1 },
+      { name: 'Meta de reserva', description: 'Definir um valor pequeno e claro para acumular nos próximos 7 dias.', type: 'milestone', frequency: 1 },
+    ], variant);
+  }
+
+  if (seedType === 'health') {
+    return rotateRoots([
+      { name: 'Movimento do corpo', description: 'Fazer uma ação física simples: treino, caminhada ou alongamento.', type: 'daily', frequency: 1 },
+      { name: 'Energia básica', description: 'Cuidar de água, sono ou alimentação antes de buscar intensidade.', type: 'daily', frequency: 1 },
+      { name: 'Revisão de vitalidade', description: 'Perceber o que deu mais energia e repetir na próxima semana.', type: 'weekly', frequency: 1 },
+      { name: 'Sono protegido', description: 'Escolher um horario limite para desacelerar e respeitar o corpo.', type: 'daily', frequency: 1 },
+      { name: 'Marco de consistencia', description: 'Completar tres dias de cuidado basico antes de aumentar a carga.', type: 'milestone', frequency: 1 },
+    ], variant);
+  }
+
+  return rotateRoots(base, variant);
+}
+
+export async function generateRootsWithAI(input: {
+  seedName: string;
+  seedType?: string;
+  seedWhy?: string;
+  seedForWhom?: string;
+  answers: string[];
+  variant?: number;
+}): Promise<GeneratedRootSuggestion[]> {
+  if (USE_MOCK_AI) return getMockRoots(input.seedType, input.variant);
+
+  const prompt = `Você é o arquiteto de raízes do app SouMente.
+Crie de 3 a 5 raízes práticas para a semente do usuário.
+
+Semente:
+- nome: ${input.seedName}
+- tipo: ${input.seedType || 'custom'}
+- motivo: ${input.seedWhy || 'não informado'}
+- para quem: ${input.seedForWhom || 'não informado'}
+
+Respostas de aprofundamento:
+${input.answers.map((answer, index) => `${index + 1}. ${answer || 'sem resposta'}`).join('\n')}
+
+Regras:
+- Cada raiz precisa ser uma ação concreta.
+- Misture raízes daily e weekly.
+- Use milestone apenas se houver um marco claro.
+- Nomes curtos, máximo 5 palavras.
+- Descrição objetiva, máximo 120 caracteres.
+
+Retorne APENAS JSON válido neste formato:
+[
+  {"name":"Nome","description":"Descrição","type":"daily","frequency":1}
+]
+
+Sem markdown, sem texto extra.`;
+
+  const text = await callBestModel(prompt, 520);
+  if (text) {
+    try {
+      const parsed = JSON.parse(cleanJsonText(text));
+      const roots = normalizeGeneratedRoots(parsed);
+      if (roots.length >= 3) return roots;
+    } catch {
+      // fall through to mock fallback
+    }
+  }
+
+  return getMockRoots(input.seedType, input.variant);
+}
+
 export async function fetchDailyOracle(context?: UserContext, seed = new Date().toISOString().slice(0, 10)): Promise<OraclePhrase> {
   if (USE_MOCK_AI) return getMockOracle(context, seed);
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const variables = buildUserVariables(context);
-  const prompt = `Voce e o Oraculo Diario do app SouMente.
-Use as variaveis reais do usuario para gerar um foco personalizado para hoje.
+  const prompt = `Você é o Oráculo Diário do app SouMente.
+Use as variáveis reais do usuário para gerar um foco personalizado para hoje.
 
 Variaveis resumidas:
 - rituais_hoje: ${variables.completedToday}/${variables.totalHabits}
@@ -263,15 +417,14 @@ Variaveis resumidas:
 ${getContextBlock(context)}
 
 Retorne APENAS JSON valido neste formato exato:
-{"quote":"frase meditativa de ate 2 linhas","principle":"principio hermetico ou Sefirot","focus":"foco pratico do dia em ate 8 palavras","action":"microacao concreta para as proximas 24h"}
+{"quote":"frase meditativa de até 2 linhas","principle":"princípio hermético ou Sefirot","focus":"foco prático do dia em até 8 palavras","action":"microação concreta para as próximas 24h"}
 
-Sem markdown, sem texto extra. Tom: sabio, esoterico, preciso e nao generico.`;
+Sem markdown, sem texto extra. Tom: sábio, esotérico, preciso e não genérico.`;
 
   const text = await callBestModel(prompt, 180);
   if (text) {
     try {
-      const clean = text.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
-      const parsed = JSON.parse(clean);
+      const parsed = JSON.parse(cleanJsonText(text));
       if (parsed.quote && parsed.principle) return parsed as OraclePhrase;
     } catch {
       // fall through to fallback
@@ -284,13 +437,13 @@ Sem markdown, sem texto extra. Tom: sabio, esoterico, preciso e nao generico.`;
 export async function getGoalInsight(goal: SEGoal, context?: UserContext): Promise<string> {
   if (USE_MOCK_AI) {
     const variables = buildUserVariables(context);
-    return `Seu objetivo "${goal.title}" esta em ${goal.progress}%, entao o melhor movimento agora e pequeno e verificavel. Acoes: 1) escolha uma tarefa de 15 minutos ligada a esse objetivo; 2) conclua antes de mexer em outro plano. Seus rituais hoje estao em ${variables.completedToday}/${variables.totalHabits}, entao use um ritual como gatilho de foco. Frase: a obra cresce quando a vontade vira gesto.`;
+    return `Seu objetivo "${goal.title}" está em ${goal.progress}%, então o melhor movimento agora é pequeno e verificável. Ações: 1) escolha uma tarefa de 15 minutos ligada a esse objetivo; 2) conclua antes de mexer em outro plano. Seus rituais hoje estão em ${variables.completedToday}/${variables.totalHabits}, então use um ritual como gatilho de foco. Frase: a obra cresce quando a vontade vira gesto.`;
   }
 
-  const prompt = `Voce e o Mentor SouMente analisando um objetivo especifico.
+  const prompt = `Você é o Mentor SouMente analisando um objetivo específico.
 
 Objetivo em foco:
-- titulo: ${goal.title}
+- título: ${goal.title}
 - categoria: ${goal.category}
 - progresso: ${goal.progress}%
 - deadline: ${goal.deadline}
@@ -298,59 +451,59 @@ Objetivo em foco:
 
 ${getContextBlock(context)}
 
-Gere um insight em portugues com:
+Gere um insight em português com:
 1) leitura objetiva do estado atual
-2) 2 proximas acoes concretas
-3) uma frase meditativa hermetica curta
+2) 2 próximas ações concretas
+3) uma frase meditativa hermética curta
 
-Use rituais, financas, plano e grimorio apenas quando forem relevantes.
+Use rituais, finanças, plano e grimório apenas quando forem relevantes.
 Max 120 palavras.`;
 
   const text = await callBestModel(prompt, 220);
-  return text ?? 'Consulte sua intuicao: o proximo passo ja esta tentando ficar visivel.';
+  return text ?? 'Consulte sua intuição: o próximo passo já está tentando ficar visível.';
 }
 
 export async function getDiaryReflection(mood: string, text: string, context?: UserContext): Promise<string> {
   if (USE_MOCK_AI) {
     const variables = buildUserVariables(context);
-    return `O estado "${mood}" aparece como materia-prima, nao como sentenca. Pela Lei da Correspondencia, o que voce escreveu conversa com seu momento: ${variables.completedToday}/${variables.totalHabits} rituais hoje e objetivos em ${variables.averageGoalProgress}% de media. Transmutacao possivel: escolha um gesto fisico simples agora e registre o que mudou depois dele.`;
+    return `O estado "${mood}" aparece como matéria-prima, não como sentença. Pela Lei da Correspondência, o que você escreveu conversa com seu momento: ${variables.completedToday}/${variables.totalHabits} rituais hoje e objetivos em ${variables.averageGoalProgress}% de média. Transmutação possível: escolha um gesto físico simples agora e registre o que mudou depois dele.`;
   }
 
-  const prompt = `Voce e um oraculo hermetico-kabbalistic. O usuario registrou:
+  const prompt = `Você é um oráculo hermético-kabbalistic. O usuário registrou:
 Estado: ${mood}
-Reflexao: "${text}"
+Reflexão: "${text}"
 
 ${getContextBlock(context)}
 
 Gere uma reflexao esoterica em 2-3 frases curtas que:
-1) Valide a experiencia sem ser generico
-2) Conecte com um principio hermetico ou sefirot relevante
-3) Relacione com algum dado do usuario, se fizer sentido
-4) Aponte uma transmutacao possivel
+1) Valide a experiência sem ser genérico
+2) Conecte com um princípio hermético ou sefirot relevante
+3) Relacione com algum dado do usuário, se fizer sentido
+4) Aponte uma transmutação possível
 
-Responda em portugues. Tom: sabio, nao clinico. Max 100 palavras.`;
+Responda em português. Tom: sábio, não clínico. Max 100 palavras.`;
 
   const text2 = await callBestModel(prompt, 220);
-  return text2 ?? 'Sua escrita ja e alquimia. Releia com outros olhos e escolha uma pequena transmutacao para hoje.';
+  return text2 ?? 'Sua escrita já é alquimia. Releia com outros olhos e escolha uma pequena transmutação para hoje.';
 }
 
 export async function askSouMenteMentor(question: string, context: UserContext, history: ChatMessage[] = []): Promise<string> {
   if (USE_MOCK_AI) {
     const variables = buildUserVariables(context);
-    return `Modo mock ativado. Lendo seu mapa local: ${variables.completedToday}/${variables.totalHabits} rituais hoje, objetivos em ${variables.averageGoalProgress}% e saldo de R$ ${variables.balance.toLocaleString('pt-BR')}. Para sua pergunta "${question}", eu escolheria o menor passo que gere evidencia hoje. Acao de 24h: conclua um ritual e avance +5 em um objetivo ligado a ele.`;
+    return `Modo mock ativado. Lendo seu mapa local: ${variables.completedToday}/${variables.totalHabits} rituais hoje, objetivos em ${variables.averageGoalProgress}% e saldo de R$ ${variables.balance.toLocaleString('pt-BR')}. Para sua pergunta "${question}", eu escolheria o menor passo que gere evidência hoje. Ação de 24h: conclua um ritual e avance +5 em um objetivo ligado a ele.`;
   }
 
-  const system = `Voce e o Mentor SouMente, um bot de autoconsciencia pratica.
-Use os dados do usuario para dar respostas personalizadas, objetivas e motivadoras.
-Tom: calmo, direto, mistico na medida, sem parecer terapeuta clinico.
+  const system = `Você é o Mentor SouMente, um bot de autoconsciência prática.
+Use os dados do usuário para dar respostas personalizadas, objetivas e motivadoras.
+Tom: calmo, direto, místico na medida, sem parecer terapeuta clínico.
 Regras:
-- Responda em portugues do Brasil.
-- Use no maximo 160 palavras.
-- Sempre termine com uma acao pequena para as proximas 24 horas.
-- Se o usuario falar de risco, crise, autoagressao ou emergencia, recomende procurar ajuda humana imediata e servicos de emergencia.
-- Nao invente dados: use apenas o contexto fornecido.`;
+- Responda em português do Brasil.
+- Use no máximo 160 palavras.
+- Sempre termine com uma ação pequena para as próximas 24 horas.
+- Se o usuário falar de risco, crise, autoagressão ou emergência, recomende procurar ajuda humana imediata e serviços de emergência.
+- Não invente dados: use apenas o contexto fornecido.`;
 
-  const contextMessage = `Contexto atual do usuario em JSON compacto:\n${compactContext(context)}`;
+  const contextMessage = `Contexto atual do usuário em JSON compacto:\n${compactContext(context)}`;
   const conversation = history.slice(-6).map((message) => ({ role: message.role, content: message.content }));
   const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
     { role: 'system', content: system },
@@ -362,7 +515,7 @@ Regras:
   const qwen = await callQwen(messages, 520);
   if (qwen) return qwen;
 
-  const fallbackPrompt = `${system}\n\n${contextMessage}\n\nPergunta do usuario: ${question}`;
+  const fallbackPrompt = `${system}\n\n${contextMessage}\n\nPergunta do usuário: ${question}`;
   const claude = await callClaude(fallbackPrompt, 520);
   if (claude) return claude;
 
@@ -373,5 +526,5 @@ Regras:
   const completedToday = context.habits.filter((habit) => habit.days[todayIndex]).length;
   const balance = context.finance.reduce((total, entry) => total + entry.amount, 0);
 
-  return `Ainda estou sem conexao com o modelo, mas consigo ler seu mapa local: hoje voce marcou ${completedToday}/${context.habits.length} rituais, seus objetivos estao em media com ${averageGoalProgress}% e seu saldo esta em R$ ${balance.toLocaleString('pt-BR')}. A magia agora e simples: escolha um objetivo e mova apenas 5% hoje. Acao de 24h: registre uma microtarefa concreta e marque quando concluir.`;
+  return `Ainda estou sem conexão com o modelo, mas consigo ler seu mapa local: hoje você marcou ${completedToday}/${context.habits.length} rituais, seus objetivos estão em média com ${averageGoalProgress}% e seu saldo está em R$ ${balance.toLocaleString('pt-BR')}. A magia agora é simples: escolha um objetivo e mova apenas 5% hoje. Ação de 24h: registre uma microtarefa concreta e marque quando concluir.`;
 }

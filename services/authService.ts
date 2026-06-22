@@ -9,5 +9,6 @@ export async function getCurrentUser() {
 }
 
 export async function signOut() {
+  if (DEV_AUTH_ENABLED) return;
   await supabase.auth.signOut();
 }

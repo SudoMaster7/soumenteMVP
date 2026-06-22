@@ -35,7 +35,7 @@ export type Achievement = {
   id: string;
   title: string;
   message: string;
-  category: 'Diario' | 'Raizes' | 'Sementes' | 'Relatorio' | 'Padroes' | 'Nivel' | 'Consistencia' | 'Retencao';
+  category: 'Diário' | 'Raízes' | 'Sementes' | 'Relatório' | 'Padrões' | 'Nível' | 'Consistência' | 'Retenção';
   unlocked: boolean;
   distance: number;
 };
@@ -56,24 +56,24 @@ type StoredLevelMap = Record<string, number>;
 type StoredReportReads = Record<string, string[]>;
 
 const LEVELS = [
-  { level: 1, name: 'Semente', minScore: 0, nextLabel: 'Chegar a 120 pontos', description: 'O primeiro gesto ja existe. Agora o foco e voltar amanha.' },
-  { level: 2, name: 'Broto', minScore: 120, nextLabel: 'Fortalecer uma raiz ate 80%', description: 'A repeticao ja apareceu. O solo esta ficando fertil.' },
-  { level: 3, name: 'Raiz Forte', minScore: 300, nextLabel: 'Cultivar 2 sementes por 30 dias', description: 'Uma raiz ganhou forca suficiente para sustentar movimento real.' },
-  { level: 4, name: 'Arvore Jovem', minScore: 650, nextLabel: 'Chegar a 3 meses de uso', description: 'Voce ja nao esta apenas comecando. Existe continuidade visivel.' },
-  { level: 5, name: 'Arvore Madura', minScore: 1200, nextLabel: 'Formar uma floresta de raizes fortes', description: 'O sistema ja tem memoria suficiente para devolver padroes com profundidade.' },
-  { level: 6, name: 'Floresta', minScore: 2200, nextLabel: 'Sustentar por 1 ano', description: 'Varias sementes ja formam um ecossistema pessoal.' },
-  { level: 7, name: 'Guardiao da Floresta', minScore: 4000, nextLabel: 'Manter o legado vivo', description: 'Voce construiu uma identidade de cultivo que atravessa o tempo.' },
+  { level: 1, name: 'Semente', minScore: 0, nextLabel: 'Chegar a 120 pontos', description: 'O primeiro gesto já existe. Agora o foco é voltar amanhã.' },
+  { level: 2, name: 'Broto', minScore: 120, nextLabel: 'Fortalecer uma raiz até 80%', description: 'A repetição já apareceu. O solo está ficando fértil.' },
+  { level: 3, name: 'Raiz Forte', minScore: 300, nextLabel: 'Cultivar 2 sementes por 30 dias', description: 'Uma raiz ganhou força suficiente para sustentar movimento real.' },
+  { level: 4, name: 'Árvore Jovem', minScore: 650, nextLabel: 'Chegar a 3 meses de uso', description: 'Você já não está apenas começando. Existe continuidade visível.' },
+  { level: 5, name: 'Árvore Madura', minScore: 1200, nextLabel: 'Formar uma floresta de raízes fortes', description: 'O sistema já tem memória suficiente para devolver padrões com profundidade.' },
+  { level: 6, name: 'Floresta', minScore: 2200, nextLabel: 'Sustentar por 1 ano', description: 'Várias sementes já formam um ecossistema pessoal.' },
+  { level: 7, name: 'Guardião da Floresta', minScore: 4000, nextLabel: 'Manter o legado vivo', description: 'Você construiu uma identidade de cultivo que atravessa o tempo.' },
 ] as const;
 
 const ACHIEVEMENT_PRIORITY: Record<Achievement['category'], number> = {
-  Diario: 1,
-  Raizes: 2,
+  Diário: 1,
+  Raízes: 2,
   Sementes: 3,
-  Relatorio: 4,
-  Padroes: 5,
-  Nivel: 6,
-  Consistencia: 7,
-  Retencao: 8,
+  Relatório: 4,
+  Padrões: 5,
+  Nível: 6,
+  Consistência: 7,
+  Retenção: 8,
 };
 
 function clamp(value: number, min = 0, max = 100) {
@@ -187,20 +187,20 @@ function achievement(
 
 function buildAchievements(stats: GrowthStats, level: ConsciousnessLevel): Achievement[] {
   return [
-    achievement('first-sprout', 'Primeiro Broto', 'Voce plantou sua primeira intencao no mundo.', 'Sementes', stats.seeds >= 1, 1 - stats.seeds),
-    achievement('first-root', 'Primeira Raiz', 'Toda semente precisa de sustentacao. Voce criou a primeira.', 'Raizes', stats.roots >= 1, 1 - stats.roots),
-    achievement('first-water', 'Primeira Rega', 'Um pequeno gesto ja moveu o jardim.', 'Raizes', stats.completedRoots >= 1, 1 - stats.completedRoots),
-    achievement('seven-days', 'Sete Dias de Cultivo', 'Uma semana inteira. O solo esta fertil.', 'Diario', stats.streak >= 7, 7 - stats.streak),
-    achievement('deep-root', 'Raiz Profunda', 'Essa raiz agora sustenta algo real.', 'Raizes', stats.legendaryRoots >= 1, 1 - stats.legendaryRoots),
-    achievement('three-seeds', 'Jardim Iniciado', 'Voce comecou a cultivar mais de uma frente da vida.', 'Sementes', stats.seeds >= 3, 3 - stats.seeds),
-    achievement('thirty-entries', 'Espelho Constante', 'Trinta sinais internos registrados. Seu mapa esta ficando mais nitido.', 'Diario', stats.diaryEntries >= 30, 30 - stats.diaryEntries),
-    achievement('faithful-mirror', 'Espelho Fiel', 'Voce tem uma escuta interior refinada.', 'Diario', stats.diaryEntries >= 50, 50 - stats.diaryEntries),
-    achievement('consistent-gardener', 'Cultivador Consistente', 'Trinta regas. A repeticao virou materia.', 'Consistencia', stats.completedRoots >= 30, 30 - stats.completedRoots),
-    achievement('garden-guardian', 'Guardiao do Jardim', 'Voce nao abandonou sua semente. Isso e raro.', 'Retencao', stats.activeSeeds >= 1 && stats.oldestSeedDays >= 90, Math.max(1 - stats.activeSeeds, 90 - stats.oldestSeedDays)),
-    achievement('pattern-cultivator', 'Cultivador de Padroes', 'Seu jardim ja tem memoria.', 'Padroes', stats.activeDaysLast30 >= 18, 18 - stats.activeDaysLast30),
-    achievement('weekly-reader', 'Leitor da Semana', 'Voce parou para ler o proprio caminho.', 'Relatorio', stats.weeklyReportsRead >= 1, 1 - stats.weeklyReportsRead),
-    achievement('monthly-reader', 'Quatro Semanas de Espelho', 'Um mes inteiro olhando para os proprios sinais.', 'Relatorio', stats.weeklyReportsRead >= 4, 4 - stats.weeklyReportsRead),
-    achievement('forest-standing', 'Floresta em Pe', 'Voce construiu algo que poucos constroem.', 'Nivel', level.level >= 6, 6 - level.level),
+    achievement('first-sprout', 'Primeiro Broto', 'Você plantou sua primeira intenção no mundo.', 'Sementes', stats.seeds >= 1, 1 - stats.seeds),
+    achievement('first-root', 'Primeira Raiz', 'Toda semente precisa de sustentação. Você criou a primeira.', 'Raízes', stats.roots >= 1, 1 - stats.roots),
+    achievement('first-water', 'Primeira Rega', 'Um pequeno gesto já moveu o jardim.', 'Raízes', stats.completedRoots >= 1, 1 - stats.completedRoots),
+    achievement('seven-days', 'Sete Dias de Cultivo', 'Uma semana inteira. O solo está fértil.', 'Diário', stats.streak >= 7, 7 - stats.streak),
+    achievement('deep-root', 'Raiz Profunda', 'Essa raiz agora sustenta algo real.', 'Raízes', stats.legendaryRoots >= 1, 1 - stats.legendaryRoots),
+    achievement('three-seeds', 'Jardim Iniciado', 'Você começou a cultivar mais de uma frente da vida.', 'Sementes', stats.seeds >= 3, 3 - stats.seeds),
+    achievement('thirty-entries', 'Espelho Constante', 'Trinta sinais internos registrados. Seu mapa está ficando mais nítido.', 'Diário', stats.diaryEntries >= 30, 30 - stats.diaryEntries),
+    achievement('faithful-mirror', 'Espelho Fiel', 'Você tem uma escuta interior refinada.', 'Diário', stats.diaryEntries >= 50, 50 - stats.diaryEntries),
+    achievement('consistent-gardener', 'Cultivador Consistente', 'Trinta regas. A repetição virou matéria.', 'Consistência', stats.completedRoots >= 30, 30 - stats.completedRoots),
+    achievement('garden-guardian', 'Guardião do Jardim', 'Você não abandonou sua semente. Isso é raro.', 'Retenção', stats.activeSeeds >= 1 && stats.oldestSeedDays >= 90, Math.max(1 - stats.activeSeeds, 90 - stats.oldestSeedDays)),
+    achievement('pattern-cultivator', 'Cultivador de Padrões', 'Seu jardim já tem memória.', 'Padrões', stats.activeDaysLast30 >= 18, 18 - stats.activeDaysLast30),
+    achievement('weekly-reader', 'Leitor da Semana', 'Você parou para ler o próprio caminho.', 'Relatório', stats.weeklyReportsRead >= 1, 1 - stats.weeklyReportsRead),
+    achievement('monthly-reader', 'Quatro Semanas de Espelho', 'Um mês inteiro olhando para os próprios sinais.', 'Relatório', stats.weeklyReportsRead >= 4, 4 - stats.weeklyReportsRead),
+    achievement('forest-standing', 'Floresta em Pé', 'Você construiu algo que poucos constroem.', 'Nível', level.level >= 6, 6 - level.level),
   ];
 }
 

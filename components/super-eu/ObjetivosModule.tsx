@@ -27,11 +27,11 @@ type CategoryOption = {
 
 const CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'Produto', label: 'Produto', icon: 'cube-outline', tone: 'primary' },
-  { value: 'Negócio', label: 'Negocio', icon: 'briefcase-outline', tone: 'accent' },
+  { value: 'Negócio', label: 'Negócio', icon: 'briefcase-outline', tone: 'accent' },
   { value: 'Corpo', label: 'Corpo', icon: 'fitness-outline', tone: 'success' },
-  { value: 'Finanças', label: 'Financas', icon: 'wallet-outline', tone: 'warning' },
+  { value: 'Finanças', label: 'Finanças', icon: 'wallet-outline', tone: 'warning' },
   { value: 'Espiritual', label: 'Espiritual', icon: 'sparkles-outline', tone: 'primary' },
-  { value: 'Relacionamentos', label: 'Relacoes', icon: 'people-outline', tone: 'accent' },
+  { value: 'Relacionamentos', label: 'Relações', icon: 'people-outline', tone: 'accent' },
 ];
 
 const getCategory = (category: SEGoal['category']) =>
@@ -133,14 +133,14 @@ export default function ObjetivosModule() {
         </View>
         <View style={styles.heroTextWrap}>
           <Text style={[styles.heroTitle, { color: colors.text }]}>Objetivos em movimento</Text>
-          <Text style={[styles.heroSubtitle, { color: colors.muted }]}>Avance em passos pequenos. Use +5 quando concluir uma acao real.</Text>
+          <Text style={[styles.heroSubtitle, { color: colors.muted }]}>Avance em passos pequenos. Use +5 quando concluir uma ação real.</Text>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         <StatCard label="Ativos" value={goals.length.toString()} icon="albums-outline" theme={theme} />
-        <StatCard label="Concluidos" value={stats.done.toString()} icon="checkmark-done-outline" theme={theme} />
-        <StatCard label="Media" value={`${stats.avg}%`} icon="trending-up-outline" theme={theme} />
+        <StatCard label="Concluídos" value={stats.done.toString()} icon="checkmark-done-outline" theme={theme} />
+        <StatCard label="Média" value={`${stats.avg}%`} icon="trending-up-outline" theme={theme} />
       </View>
 
       {goals.map((goal) => {

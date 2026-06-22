@@ -14,7 +14,7 @@ const DAYS = [
   { short: 'Q', label: 'Qua' },
   { short: 'Q', label: 'Qui' },
   { short: 'S', label: 'Sex' },
-  { short: 'S', label: 'Sab' },
+  { short: 'S', label: 'Sáb' },
   { short: 'D', label: 'Dom' },
 ];
 
@@ -83,7 +83,7 @@ export default function RituaisModule() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>Rituais da semana</Text>
-            <Text style={styles.heroText}>Toque no dia em que voce completou cada ritual. A coluna marcada e o dia de hoje.</Text>
+            <Text style={styles.heroText}>Toque no dia em que você completou cada ritual. A coluna marcada é o dia de hoje.</Text>
           </View>
         </View>
         <View style={styles.progressBg}>
@@ -163,8 +163,8 @@ export default function RituaisModule() {
       <View style={styles.principleCard}>
         <Ionicons name="sparkles-outline" size={18} color={colors.accent} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.principleText}>Cada marca e uma prova pequena de compromisso. Nao busque perfeicao: busque voltar.</Text>
-          <Text style={styles.principleAuthor}>Consistencia antes de intensidade</Text>
+          <Text style={styles.principleText}>Cada marca é uma prova pequena de compromisso. Não busque perfeição: busque voltar.</Text>
+          <Text style={styles.principleAuthor}>Consistência antes de intensidade</Text>
         </View>
       </View>
 
@@ -172,7 +172,7 @@ export default function RituaisModule() {
         <Pressable style={styles.overlay} onPress={() => { resetForm(); setShowAdd(false); }} />
         <View style={styles.sheet}>
           <Text style={styles.sheetTitle}>{editingHabitId ? 'Editar ritual' : 'Novo ritual'}</Text>
-          <Text style={styles.sheetHint}>Escolha um simbolo simples e de um nome claro para o habito.</Text>
+          <Text style={styles.sheetHint}>Escolha um símbolo simples e dê um nome claro para o hábito.</Text>
           <View style={styles.iconRow}>
             {ICONS.map((ic) => (
               <TouchableOpacity key={ic} onPress={() => setForm((f) => ({ ...f, icon: ic }))} style={[styles.iconBtn, form.icon === ic && styles.iconBtnActive]}>

@@ -90,22 +90,22 @@ export default function FinancasModule() {
             <Ionicons name={positive ? 'trending-up-outline' : 'trending-down-outline'} size={23} color={positive ? colors.success : colors.danger} />
           </View>
           <View style={styles.balanceTextWrap}>
-            <Text style={[styles.balanceLabel, { color: colors.muted }]}>Saldo disponivel</Text>
+            <Text style={[styles.balanceLabel, { color: colors.muted }]}>Saldo disponível</Text>
             <Text style={[styles.balanceValue, { color: positive ? colors.success : colors.danger }]}>{fmtBRL(totals.balance)}</Text>
           </View>
         </View>
         <Text style={[styles.balanceSub, { color: colors.muted }]}> 
-          {positive ? 'Fluxo positivo. Continue protegendo sua margem.' : 'Fluxo negativo. Revise saidas antes de assumir novos custos.'}
+          {positive ? 'Fluxo positivo. Continue protegendo sua margem.' : 'Fluxo negativo. Revise saídas antes de assumir novos custos.'}
         </Text>
       </View>
 
       <View style={styles.flowRow}>
         <FlowCard label="Entradas" value={fmtBRL(totals.income)} icon="arrow-down-circle-outline" tone="success" />
-        <FlowCard label="Saidas" value={fmtBRL(totals.expense)} icon="arrow-up-circle-outline" tone="danger" />
+        <FlowCard label="Saídas" value={fmtBRL(totals.expense)} icon="arrow-up-circle-outline" tone="danger" />
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Lancamentos</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Lançamentos</Text>
         <Text style={[styles.sectionCount, { color: colors.muted }]}>{finance.length} registros</Text>
       </View>
 
@@ -130,7 +130,7 @@ export default function FinancasModule() {
                   style={[styles.entryActionButton, { backgroundColor: colors.primarySoft }]}
                   onPress={() => openEdit(entry)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Editar lancamento ${entry.source}`}
+                  accessibilityLabel={`Editar lançamento ${entry.source}`}
                 >
                   <Ionicons name="create-outline" size={15} color={colors.primary} />
                 </TouchableOpacity>
@@ -138,7 +138,7 @@ export default function FinancasModule() {
                   style={[styles.entryActionButton, { backgroundColor: colors.dangerSoft }]}
                   onPress={() => deleteFinanceEntry(entry.id)}
                   accessibilityRole="button"
-                  accessibilityLabel={`Excluir lancamento ${entry.source}`}
+                  accessibilityLabel={`Excluir lançamento ${entry.source}`}
                 >
                   <Ionicons name="trash-outline" size={15} color={colors.danger} />
                 </TouchableOpacity>
@@ -151,8 +151,8 @@ export default function FinancasModule() {
       {finance.length === 0 ? (
         <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
           <Ionicons name="receipt-outline" size={26} color={colors.primary} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Sem lancamentos</Text>
-          <Text style={[styles.emptyText, { color: colors.muted }]}>Registre uma entrada ou saida para enxergar o fluxo.</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Sem lançamentos</Text>
+          <Text style={[styles.emptyText, { color: colors.muted }]}>Registre uma entrada ou saída para enxergar o fluxo.</Text>
         </View>
       ) : null}
 
@@ -165,7 +165,7 @@ export default function FinancasModule() {
         <Pressable style={styles.overlay} onPress={() => { resetForm(); setShowAdd(false); }} />
         <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]}> 
           <View style={styles.sheetHeader}>
-            <Text style={[styles.sheetTitle, { color: colors.text }]}>{editingEntryId ? 'Editar lancamento' : 'Novo lancamento'}</Text>
+            <Text style={[styles.sheetTitle, { color: colors.text }]}>{editingEntryId ? 'Editar lançamento' : 'Novo lançamento'}</Text>
             <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}> 
               <Ionicons name="close" size={18} color={colors.text} />
             </TouchableOpacity>
@@ -184,15 +184,15 @@ export default function FinancasModule() {
               onPress={() => setForm((current) => ({ ...current, type: 'expense' }))}
             >
               <Ionicons name="arrow-up-outline" size={15} color={form.type === 'expense' ? colors.primaryText : colors.muted} />
-              <Text style={[styles.typeButtonText, { color: form.type === 'expense' ? colors.primaryText : colors.muted }]}>Saida</Text>
+              <Text style={[styles.typeButtonText, { color: form.type === 'expense' ? colors.primaryText : colors.muted }]}>Saída</Text>
             </TouchableOpacity>
           </View>
 
           <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} placeholder="Fonte ou destino" placeholderTextColor={colors.subtle} value={form.source} onChangeText={(source) => setForm((current) => ({ ...current, source }))} />
           <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} placeholder="Valor em R$" placeholderTextColor={colors.subtle} keyboardType="decimal-pad" value={form.amount} onChangeText={(amount) => setForm((current) => ({ ...current, amount }))} />
-          <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} placeholder="Observacao opcional" placeholderTextColor={colors.subtle} value={form.note} onChangeText={(note) => setForm((current) => ({ ...current, note }))} />
+          <TextInput style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]} placeholder="Observação opcional" placeholderTextColor={colors.subtle} value={form.note} onChangeText={(note) => setForm((current) => ({ ...current, note }))} />
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: colors.primary }]} onPress={handleSave}>
-            <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>{editingEntryId ? 'Salvar alteracoes' : 'Salvar lancamento'}</Text>
+            <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>{editingEntryId ? 'Salvar alterações' : 'Salvar lançamento'}</Text>
           </TouchableOpacity>
         </View>
       </Modal>

@@ -16,7 +16,7 @@ const SEED_TYPES: { id: SeedType; label: string; icon: keyof typeof Ionicons.gly
   { id: 'career', label: 'Carreira', icon: 'briefcase-outline', hint: 'Trabalho e direcao' },
   { id: 'health', label: 'Saude', icon: 'fitness-outline', hint: 'Corpo e energia' },
   { id: 'relationship', label: 'Relacoes', icon: 'heart-outline', hint: 'Vinculos e cuidado' },
-  { id: 'finance', label: 'Financas', icon: 'wallet-outline', hint: 'Dinheiro e escolhas' },
+  { id: 'finance', label: 'Finanças', icon: 'wallet-outline', hint: 'Dinheiro e escolhas' },
   { id: 'custom', label: 'Outro', icon: 'leaf-outline', hint: 'Seu proprio caminho' },
 ];
 
@@ -44,10 +44,19 @@ export default function CreateSeed() {
         why: why.trim() || undefined,
         for_whom: forWhom.trim() || undefined,
       });
-      router.push({ pathname: '/seed/questions', params: { seedId: seed.id, seedName: seed.name, seedType: seed.type } });
+      router.push({
+        pathname: '/seed/questions',
+        params: {
+          seedId: seed.id,
+          seedName: seed.name,
+          seedType: seed.type,
+          seedWhy: why.trim(),
+          seedForWhom: forWhom.trim(),
+        },
+      });
     } catch (error) {
       console.error('Failed to create seed', error);
-      Alert.alert('Erro', 'Nao foi possivel criar a semente. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível criar a semente. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +71,7 @@ export default function CreateSeed() {
         </TouchableOpacity>
 
         <Text style={styles.eyebrow}>NOVA SEMENTE</Text>
-        <Text style={styles.title}>O que voce quer cultivar?</Text>
+        <Text style={styles.title}>O que você quer cultivar?</Text>
         <Text style={styles.subtitle}>Escolha um objetivo que mereca atencao diaria. Pequeno, real e importante.</Text>
 
         <Text style={styles.label}>TIPO DE SEMENTE</Text>

@@ -18,57 +18,57 @@ import { useAuthStore } from '@/stores/authStore';
 
 const highlights = [
   { value: '7 dias', label: 'de leitura semanal' },
-  { value: '6 modulos', label: 'no Super Eu' },
+  { value: '6 módulos', label: 'no Super Eu' },
   { value: '1 foco', label: 'claro por vez' },
 ];
 
 const pillars = [
   {
     icon: 'journal-outline' as const,
-    title: 'Diario emocional',
-    text: 'Registre humor, energia e profundidade para perceber padroes que normalmente passam batido.',
+    title: 'Diário emocional',
+    text: 'Registre humor, energia e profundidade para perceber padrões que normalmente passam batido.',
   },
   {
     icon: 'leaf-outline' as const,
     title: 'Sementes de objetivo',
-    text: 'Transforme metas grandes em uma semente viva, com raizes, etapas e progresso visivel.',
+    text: 'Transforme metas grandes em uma semente viva, com raízes, etapas e progresso visível.',
   },
   {
     icon: 'sparkles-outline' as const,
     title: 'Insights com IA',
-    text: 'Receba leituras praticas sobre o seu momento, usando os dados que voce mesmo cultivou.',
+    text: 'Receba leituras práticas sobre o seu momento, usando os dados que você mesmo cultivou.',
   },
   {
     icon: 'analytics-outline' as const,
-    title: 'Relatorio semanal',
-    text: 'Veja consistencia, vitorias, riscos e uma acao simples para manter o movimento.',
+    title: 'Relatório semanal',
+    text: 'Veja consistência, vitórias, riscos e uma ação simples para manter o movimento.',
   },
 ];
 
 const modules = [
-  'Oraculo diario',
+  'Oráculo diário',
   'Mentor SouMente',
   'Rituais',
   'Objetivos',
-  'Financas',
-  'Grimorio',
+  'Finanças',
+  'Grimório',
 ];
 
 const journey = [
   {
     step: '01',
     title: 'Registre o agora',
-    text: 'O usuario marca como esta se sentindo e cria um ponto real de autoconsciencia.',
+    text: 'O usuário marca como está se sentindo e cria um ponto real de autoconsciência.',
   },
   {
     step: '02',
     title: 'Plante uma semente',
-    text: 'Um objetivo importante vira algo acompanhado por raizes, microtarefas e progresso.',
+    text: 'Um objetivo importante vira algo acompanhado por raízes, microtarefas e progresso.',
   },
   {
     step: '03',
     title: 'Receba direcao',
-    text: 'O Super Eu cruza rituais, metas e diario para sugerir o proximo passo possivel.',
+    text: 'O Super Eu cruza rituais, metas e diário para sugerir o próximo passo possível.',
   },
 ];
 
@@ -141,12 +141,12 @@ export default function LandingPage() {
         <View style={styles.heroCopy}>
           <View style={[styles.launchBadge, { backgroundColor: colors.primarySoft, borderColor: colors.border }]}>
             <Ionicons name="flame-outline" size={16} color={colors.primary} />
-            <Text style={[styles.launchText, { color: colors.primary }]}>MVP de autoconsciencia pratica</Text>
+            <Text style={[styles.launchText, { color: colors.primary }]}>MVP de autoconsciência prática</Text>
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>Um sistema para transformar emocoes em direcao.</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Um sistema para transformar emoções em direção.</Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
-            SouMente une diario emocional, sementes de objetivo, rituais e IA para mostrar ao usuario o que ele esta cultivando todos os dias.
+            SouMente une diário emocional, sementes de objetivo, rituais e IA para mostrar ao usuário o que ele está cultivando todos os dias.
           </Text>
 
           <View style={styles.actions}>
@@ -187,7 +187,7 @@ export default function LandingPage() {
 
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionKicker, { color: colors.primary }]}>COMO AJUDA</Text>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>O app troca culpa por clareza e progresso visivel.</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>O app troca culpa por clareza e progresso visível.</Text>
       </View>
 
       <View style={styles.pillars}>
@@ -204,10 +204,10 @@ export default function LandingPage() {
 
       <View style={[styles.storyBand, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.storyCopy}>
-          <Text style={[styles.sectionKicker, { color: colors.primary }]}>JORNADA DO USUARIO</Text>
-          <Text style={[styles.storyTitle, { color: colors.text }]}>Do sentimento solto para uma acao de 24 horas.</Text>
+          <Text style={[styles.sectionKicker, { color: colors.primary }]}>JORNADA DO USUÁRIO</Text>
+          <Text style={[styles.storyTitle, { color: colors.text }]}>Do sentimento solto para uma ação de 24 horas.</Text>
           <Text style={[styles.storyText, { color: colors.muted }]}>
-            A experiencia foi pensada para motivar continuidade: registrar, enxergar, escolher um passo pequeno e voltar amanha com mais contexto.
+            A experiência foi pensada para motivar continuidade: registrar, enxergar, escolher um passo pequeno e voltar amanhã com mais contexto.
           </Text>
         </View>
 
@@ -226,7 +226,7 @@ export default function LandingPage() {
 
       <View style={styles.modulesSection}>
         <Text style={[styles.sectionKicker, { color: colors.primary }]}>SUPER EU</Text>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Um painel para acompanhar a vida com mais intencao.</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Um painel para acompanhar a vida com mais intenção.</Text>
         <View style={styles.moduleChips}>
           {modules.map((module) => (
             <View key={module} style={[styles.moduleChip, { backgroundColor: colors.primarySoft, borderColor: colors.border }]}>
@@ -238,7 +238,7 @@ export default function LandingPage() {
       </View>
 
       <View style={[styles.finalCta, { backgroundColor: colors.primary, borderColor: colors.border }]}>
-        <Text style={[styles.finalTitle, { color: buttonTextColor }]}>Comece pelo proximo passo pequeno.</Text>
+        <Text style={[styles.finalTitle, { color: buttonTextColor }]}>Comece pelo próximo passo pequeno.</Text>
         <Text style={[styles.finalText, { color: buttonTextColor }]}>
           Entre no app, registre o estado de hoje e deixe o SouMente organizar o foco do momento.
         </Text>
@@ -278,9 +278,9 @@ function ProductPreview() {
           <Text style={[styles.oracleLabel, { color: colors.primary }]}>ORACULO DIARIO</Text>
         </View>
         <Text style={[styles.previewQuote, { color: colors.text }]}>
-          Hoje o progresso nao precisa ser grande. Precisa ser verdadeiro.
+          Hoje o progresso não precisa ser grande. Precisa ser verdadeiro.
         </Text>
-        <Text style={[styles.previewAction, { color: colors.muted }]}>Acao de 24h: conclua uma raiz da semente ativa.</Text>
+        <Text style={[styles.previewAction, { color: colors.muted }]}>Ação de 24h: conclua uma raiz da semente ativa.</Text>
       </View>
 
       <View style={styles.previewGrid}>
@@ -300,14 +300,14 @@ function ProductPreview() {
         </View>
         <View style={styles.seedTextBox}>
           <Text style={[styles.seedTitle, { color: colors.text }]}>Semente ativa</Text>
-          <Text style={[styles.seedSub, { color: colors.muted }]}>Lancamento SouMente v1</Text>
+          <Text style={[styles.seedSub, { color: colors.muted }]}>Lançamento SouMente v1</Text>
         </View>
         <Text style={[styles.seedPercent, { color: colors.success }]}>68%</Text>
       </View>
 
       <View style={[styles.reportStrip, { backgroundColor: colors.accentSoft, borderColor: colors.border }]}>
         <Ionicons name="stats-chart-outline" size={18} color={colors.accent} />
-        <Text style={[styles.reportText, { color: colors.text }]}>Relatorio semanal: consistencia subindo, foco mais claro.</Text>
+        <Text style={[styles.reportText, { color: colors.text }]}>Relatório semanal: consistência subindo, foco mais claro.</Text>
       </View>
     </View>
   );

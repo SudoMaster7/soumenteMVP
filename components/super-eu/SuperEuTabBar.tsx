@@ -7,6 +7,7 @@ import type { SuperEuModule } from '@/types/supereu';
 interface Props {
   active: SuperEuModule;
   onSelect: (tab: SuperEuModule) => void;
+  tabs?: typeof SE_TABS;
 }
 
 const ICONS: Record<SuperEuModule, keyof typeof Ionicons.glyphMap> = {
@@ -20,7 +21,7 @@ const ICONS: Record<SuperEuModule, keyof typeof Ionicons.glyphMap> = {
   grimorio: 'book-outline',
 };
 
-export default function SuperEuTabBar({ active, onSelect }: Props) {
+export default function SuperEuTabBar({ active, onSelect, tabs = SE_TABS }: Props) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
@@ -28,7 +29,7 @@ export default function SuperEuTabBar({ active, onSelect }: Props) {
   return (
     <View style={styles.wrapper}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {SE_TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = tab.id === active;
           return (
             <TouchableOpacity key={tab.id} onPress={() => onSelect(tab.id)} style={[styles.tab, isActive && styles.tabActive]} activeOpacity={0.7}>

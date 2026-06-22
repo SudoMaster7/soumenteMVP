@@ -14,7 +14,7 @@ interface Props {
 }
 
 function getRootRank(strength: number) {
-  if (strength >= 90) return { label: 'Lendaria', icon: 'diamond-outline' as const };
+  if (strength >= 90) return { label: 'Lendária', icon: 'diamond-outline' as const };
   if (strength >= 70) return { label: 'Forte', icon: 'shield-checkmark-outline' as const };
   if (strength >= 40) return { label: 'Crescendo', icon: 'trending-up-outline' as const };
   if (strength > 0) return { label: 'Broto', icon: 'leaf-outline' as const };
@@ -40,7 +40,7 @@ export function RootCard({ root, userId, onWatered, onEdit, onDelete }: Props) {
       setWatered(true);
       onWatered();
     } catch {
-      Alert.alert('Erro', 'Nao foi possivel regar. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível regar. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export function RootCard({ root, userId, onWatered, onEdit, onDelete }: Props) {
           </View>
           <View style={styles.headerActions}>
             <View style={[styles.typeBadge, root.type === 'weekly' && styles.typeBadgeWeekly]}>
-              <Text style={styles.typeText}>{root.type === 'daily' ? 'DIARIA' : root.type === 'weekly' ? 'SEMANAL' : 'MARCO'}</Text>
+              <Text style={styles.typeText}>{root.type === 'daily' ? 'DIÁRIA' : root.type === 'weekly' ? 'SEMANAL' : 'MARCO'}</Text>
             </View>
             {onEdit ? (
               <TouchableOpacity style={styles.iconAction} onPress={() => onEdit(root)} accessibilityLabel={`Editar raiz ${root.name}`}>

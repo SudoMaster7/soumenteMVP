@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { DEV_AUTH_ENABLED } from '@/lib/devAuth';
 
 const WebStorageAdapter = {
   getItem: (key: string) => {
@@ -17,6 +18,12 @@ const WebStorageAdapter = {
   },
 };
 
+const NoopStorageAdapter = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
+};
+
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => SecureStore.getItemAsync(key),
   setItem: (key: string, value: string) => SecureStore.setItemAsync(key, value),
@@ -30,11 +37,23 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase environment variables are missing.');
 }
 
+if (DEV_AUTH_ENABLED && Platform.OS === 'web' && typeof window !== 'undefined') {
+  Object.keys(window.localStorage)
+    .filter((key) => key.startsWith('sb-'))
+    .forEach((key) => window.localStorage.removeItem(key));
+}
+
+const authStorage = DEV_AUTH_ENABLED
+  ? NoopStorageAdapter
+  : Platform.OS === 'web'
+    ? WebStorageAdapter
+    : ExpoSecureStoreAdapter;
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: Platform.OS === 'web' ? WebStorageAdapter : ExpoSecureStoreAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
+    storage: authStorage,
+    autoRefreshToken: !DEV_AUTH_ENABLED,
+    persistSession: !DEV_AUTH_ENABLED,
     detectSessionInUrl: false,
   },
 });

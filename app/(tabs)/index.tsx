@@ -22,11 +22,11 @@ function getTodayIndex() {
 }
 
 function getContextMessage(streak: number, todayEntry: any, seed: any): string {
-  if (!todayEntry) return 'O dia ainda esta em branco. O que ele esta pedindo de voce?';
-  if (streak >= 7) return `${streak} dias seguidos. A repeticao virou rito.`;
-  if (todayEntry?.emotion_primary === 'anxious') return 'A ansiedade esta apontando para algo que deseja cuidado, nao pressa.';
-  if (seed?.status === 'fruiting') return 'Suas raizes estao fortes. Um fruto esta proximo.';
-  return 'Continue regando suas raizes. Cada dia conta.';
+  if (!todayEntry) return 'O dia ainda está em branco. O que ele está pedindo de você?';
+  if (streak >= 7) return `${streak} dias seguidos. A repetição virou rito.`;
+  if (todayEntry?.emotion_primary === 'anxious') return 'A ansiedade está apontando para algo que deseja cuidado, não pressa.';
+  if (seed?.status === 'fruiting') return 'Suas raízes estão fortes. Um fruto está próximo.';
+  return 'Continue regando suas raízes. Cada dia conta.';
 }
 
 export default function Home() {
@@ -94,8 +94,8 @@ export default function Home() {
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.eyebrow}>SOUMENTE</Text>
-          <Text style={styles.greeting}>Ola, {profile?.name?.split(' ')[0] || 'voce'}.</Text>
-          <Text style={styles.subtitle}>O espelho do que voce esta cultivando agora.</Text>
+          <Text style={styles.greeting}>Olá, {profile?.name?.split(' ')[0] || 'você'}.</Text>
+          <Text style={styles.subtitle}>O espelho do que você está cultivando agora.</Text>
         </View>
         <TouchableOpacity onPress={toggleTheme} style={styles.themeButton} accessibilityLabel="Alternar tema">
           <Ionicons name={themeName === 'dark' ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.primary} />
@@ -110,7 +110,7 @@ export default function Home() {
         >
           <View style={styles.cardHeader}>
             <View style={styles.goldDot} />
-            <Text style={styles.oracleTag}>SUPER EU Â· ORACULO</Text>
+            <Text style={styles.oracleTag}>SUPER EU · ORÁCULO</Text>
           </View>
           <Text style={styles.oracleQuote}>"{oracle.quote}"</Text>
           <Text style={styles.oraclePrinciple}>{oracle.principle}</Text>
@@ -128,14 +128,14 @@ export default function Home() {
         <TouchableOpacity style={styles.mirrorCard} onPress={() => router.push('/(tabs)/super-eu')}>
           <Text style={[styles.mirrorValue, balance < 0 && { color: colors.danger }]}>{fmtBRL(balance)}</Text>
           <Text style={styles.mirrorLabel}>Fluxo atual</Text>
-          <Text style={styles.mirrorHint}>{balance >= 0 ? 'Fluxo em expansao' : 'Ajuste de rota'}</Text>
+          <Text style={styles.mirrorHint}>{balance >= 0 ? 'Fluxo em expansão' : 'Ajuste de rota'}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.aiCard}>
         <View style={styles.cardHeader}>
           <Ionicons name="sparkles-outline" size={17} color={colors.primary} />
-          <Text style={styles.aiTag}>REFLEXAO DO DIA</Text>
+          <Text style={styles.aiTag}>REFLEXÃO DO DIA</Text>
         </View>
         <Text style={styles.aiMessage}>"{contextMessage}"</Text>
         <TouchableOpacity onPress={() => router.push('/(tabs)/diary')}>
@@ -150,7 +150,7 @@ export default function Home() {
               <Ionicons name="flower-outline" size={22} color={colors.primary} />
             </View>
             <View style={styles.growthCopy}>
-              <Text style={styles.growthKicker}>Nivel {growth.level.level}</Text>
+                <Text style={styles.growthKicker}>Nível {growth.level.level}</Text>
               <Text style={styles.growthTitle}>{growth.level.name}</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
@@ -159,12 +159,12 @@ export default function Home() {
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${growth.level.progress}%`, backgroundColor: colors.accent }]} />
           </View>
-          <Text style={styles.scoreLine}>Pontuacao de consciencia: {growth.score} pontos</Text>
+          <Text style={styles.scoreLine}>Pontuação de consciência: {growth.score} pontos</Text>
           {weeklyIntention ? (
-            <Text style={styles.intentionLine}>Intencao da semana: {weeklyIntention}</Text>
+            <Text style={styles.intentionLine}>Intenção da semana: {weeklyIntention}</Text>
           ) : growth.nextAchievement ? (
             <Text style={styles.intentionLine}>
-              Proxima conquista: {growth.nextAchievement.title}
+              Próxima conquista: {growth.nextAchievement.title}
               {growth.nextAchievement.distance > 0 ? ` - faltam ${growth.nextAchievement.distance}` : ''}
             </Text>
           ) : (
@@ -197,20 +197,20 @@ export default function Home() {
       <Text style={styles.sectionLabel}>HOJE</Text>
       {todayEntry ? (
         <TouchableOpacity style={styles.emotionCard} onPress={() => router.push('/(tabs)/diary')}>
-          <Text style={styles.emotionEmoji}>{emotion?.emoji || 'â€¢'}</Text>
+          <Text style={styles.emotionEmoji}>{emotion?.emoji || '•'}</Text>
           <View>
-            <Text style={styles.emotionLabel}>Emocao registrada</Text>
+            <Text style={styles.emotionLabel}>Emoção registrada</Text>
             <Text style={[styles.emotionValue, { color: emotion?.color || colors.primary }]}>{emotion?.label || 'Neutro'}</Text>
           </View>
         </TouchableOpacity>
       ) : (
         <TouchableOpacity style={styles.checkInBtn} onPress={() => router.push('/(tabs)/diary')}>
-          <Text style={styles.checkInText}>+ Registrar emocao do dia</Text>
+          <Text style={styles.checkInText}>+ Registrar emoção do dia</Text>
         </TouchableOpacity>
       )}
 
       <TouchableOpacity style={styles.reportBtn} onPress={() => router.push('/report/weekly')}>
-        <Text style={styles.reportText}>Ver relatorio semanal</Text>
+        <Text style={styles.reportText}>Ver relatório semanal</Text>
       </TouchableOpacity>
     </ScrollView>
   );

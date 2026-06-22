@@ -48,7 +48,7 @@ export default function Diary() {
       await refetch();
     } catch (error) {
       console.error('Failed to save diary entry', error);
-      Alert.alert('Erro', 'Nao foi possivel salvar. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }

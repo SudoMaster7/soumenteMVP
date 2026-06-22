@@ -21,7 +21,7 @@ type ChatMessage = {
 const QUICK_PROMPTS = [
   'Qual deve ser meu foco hoje?',
   'O que meus dados mostram sobre minha disciplina?',
-  'Me ajude a escolher uma acao pequena agora',
+  'Me ajude a escolher uma ação pequena agora',
   'Onde estou gastando energia demais?',
 ];
 
@@ -33,7 +33,7 @@ export default function MentorModule() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: 'Eu sou o Mentor SouMente. Posso olhar seus rituais, objetivos, plano, financas e grimorio para sugerir o proximo passo com mais contexto.',
+      content: 'Eu sou o Mentor SouMente. Posso olhar seus rituais, objetivos, plano, finanças e grimório para sugerir o próximo passo com mais contexto.',
     },
   ]);
   const [draft, setDraft] = useState('');
@@ -71,7 +71,7 @@ export default function MentorModule() {
           </View>
           <View style={styles.heroTextWrap}>
             <Text style={styles.heroTitle}>Mentor SouMente</Text>
-            <Text style={styles.heroText}>Um bot com memoria do seu progresso para transformar registros em acao.</Text>
+            <Text style={styles.heroText}>Um bot com memória do seu progresso para transformar registros em ação.</Text>
           </View>
         </View>
 
@@ -96,7 +96,7 @@ export default function MentorModule() {
               <View key={`${message.role}-${index}`} style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
                 <View style={styles.messageHeader}>
                   <Ionicons name={isUser ? 'person-outline' : 'sparkles-outline'} size={13} color={isUser ? colors.primaryText : colors.primary} />
-                  <Text style={[styles.messageRole, isUser ? styles.userRole : styles.assistantRole]}>{isUser ? 'Voce' : 'Mentor'}</Text>
+                  <Text style={[styles.messageRole, isUser ? styles.userRole : styles.assistantRole]}>{isUser ? 'Você' : 'Mentor'}</Text>
                 </View>
                 <Text style={[styles.messageText, isUser ? styles.userText : styles.assistantText]}>{message.content}</Text>
               </View>

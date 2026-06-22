@@ -6,6 +6,8 @@ import type { Seed, Root, RootCompletion } from '@/types';
 const LOCAL_SEEDS_KEY = 'soumente-dev-seeds';
 const LOCAL_COMPLETIONS_KEY = 'soumente-dev-root-completions';
 
+type RootDraft = Pick<Root, 'name' | 'description' | 'type' | 'frequency'>;
+
 function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -47,8 +49,8 @@ function defaultRoots(seedId: string, userId: string): Root[] {
       id: newId('root'),
       seed_id: seedId,
       user_id: userId,
-      name: 'Acao concreta',
-      description: 'Faca pelo menos uma coisa que te aproxime do objetivo',
+      name: 'Ação concreta',
+      description: 'Faça pelo menos uma coisa que te aproxime do objetivo',
       type: 'daily',
       frequency: 1,
       strength: 0,
@@ -68,6 +70,22 @@ function defaultRoots(seedId: string, userId: string): Root[] {
       created_at: now,
     },
   ];
+}
+
+function buildRoots(seedId: string, userId: string, roots: RootDraft[]): Root[] {
+  const now = new Date().toISOString();
+  return roots.map(root => ({
+    id: newId('root'),
+    seed_id: seedId,
+    user_id: userId,
+    name: root.name,
+    description: root.description,
+    type: root.type,
+    frequency: root.frequency,
+    strength: 0,
+    completed_count: 0,
+    created_at: now,
+  }));
 }
 
 function updateLocalSeedStatus(seed: Seed): Seed {
@@ -263,7 +281,8 @@ export async function deleteSeed(seedId: string, userId: string): Promise<void> 
 export async function plantSeed(
   seedId: string,
   userId: string,
-  answers: string[]
+  answers: string[],
+  createDefaultRoots = true
 ): Promise<void> {
   if (isDevUser(userId)) {
     const seeds = await readLocalSeeds();
@@ -274,7 +293,9 @@ export async function plantSeed(
         status: 'planted' as const,
         planted_at: new Date().toISOString(),
         ai_questions: answers,
-        roots: seed.roots?.length ? seed.roots : defaultRoots(seedId, userId),
+        roots: createDefaultRoots
+          ? (seed.roots?.length ? seed.roots : defaultRoots(seedId, userId))
+          : (seed.roots || []),
       };
     });
     await writeLocalSeeds(next);
@@ -293,6 +314,8 @@ export async function plantSeed(
 
   if (seedError) throw seedError;
 
+  if (!createDefaultRoots) return;
+
   const roots = [
     {
       name: 'Reflexao diaria',
@@ -301,8 +324,8 @@ export async function plantSeed(
       frequency: 1,
     },
     {
-      name: 'Acao concreta',
-      description: 'Faca pelo menos uma coisa que te aproxime do objetivo',
+      name: 'Ação concreta',
+      description: 'Faça pelo menos uma coisa que te aproxime do objetivo',
       type: 'daily',
       frequency: 1,
     },
@@ -319,6 +342,87 @@ export async function plantSeed(
   );
 
   if (rootsError) throw rootsError;
+}
+
+export async function plantSeedWithRoots(
+  seedId: string,
+  userId: string,
+  answers: string[],
+  roots: RootDraft[]
+): Promise<Root[]> {
+  if (isDevUser(userId)) {
+    const createdRoots = buildRoots(seedId, userId, roots);
+    const seeds = await readLocalSeeds();
+    let found = false;
+    const next = seeds.map(seed => {
+      if (seed.id !== seedId || seed.user_id !== userId) return seed;
+      found = true;
+      return {
+        ...seed,
+        status: 'planted' as const,
+        planted_at: new Date().toISOString(),
+        ai_questions: answers,
+        roots: createdRoots,
+      };
+    });
+
+    if (!found) throw new Error('Seed not found');
+    await writeLocalSeeds(next);
+    return createdRoots;
+  }
+
+  const { error: seedError } = await supabase
+    .from('seeds')
+    .update({
+      status: 'planted',
+      planted_at: new Date().toISOString(),
+      ai_questions: answers,
+    })
+    .eq('id', seedId)
+    .eq('user_id', userId);
+
+  if (seedError) throw seedError;
+
+  const { data: existingRoots, error: existingRootsError } = await supabase
+    .from('roots')
+    .select('id')
+    .eq('seed_id', seedId)
+    .eq('user_id', userId);
+
+  if (existingRootsError) throw existingRootsError;
+
+  const existingRootIds = existingRoots?.map(root => root.id) ?? [];
+  if (existingRootIds.length > 0) {
+    const { error: completionsError } = await supabase
+      .from('root_completions')
+      .delete()
+      .in('root_id', existingRootIds)
+      .eq('user_id', userId);
+
+    if (completionsError) throw completionsError;
+
+    const { error: deleteRootsError } = await supabase
+      .from('roots')
+      .delete()
+      .eq('seed_id', seedId)
+      .eq('user_id', userId);
+
+    if (deleteRootsError) throw deleteRootsError;
+  }
+
+  const { data, error: rootsError } = await supabase
+    .from('roots')
+    .insert(roots.map(root => ({
+      ...root,
+      seed_id: seedId,
+      user_id: userId,
+      strength: 0,
+      completed_count: 0,
+    })))
+    .select();
+
+  if (rootsError) throw rootsError;
+  return data ?? [];
 }
 
 export async function plantSeedManual(
@@ -356,8 +460,8 @@ export async function plantSeedManual(
       frequency: 1,
     },
     {
-      name: 'Acao concreta',
-      description: 'Faca pelo menos uma coisa que te aproxime do objetivo',
+      name: 'Ação concreta',
+      description: 'Faça pelo menos uma coisa que te aproxime do objetivo',
       type: 'daily',
       frequency: 1,
     },

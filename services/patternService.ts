@@ -22,10 +22,10 @@ export type PatternMap = {
 };
 
 const EMOTION_LABELS: Record<EmotionType | string, string> = {
-  motivated: 'motivacao',
+  motivated: 'motivação',
   serene: 'serenidade',
   anxious: 'ansiedade',
-  reflective: 'reflexao',
+  reflective: 'reflexão',
   joyful: 'alegria',
   melancholic: 'melancolia',
 };
@@ -79,8 +79,8 @@ function buildEarlyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
       id: 'early-presence',
       title: 'Primeiro sinal',
       text: latestEntry
-        ? `Seu ultimo registro trouxe ${EMOTION_LABELS[latestEntry.emotion_primary] ?? 'um estado interno'} para a superficie. O mapa ainda esta formando memoria, mas ja existe um ponto de retorno.`
-        : 'O mapa ainda esta em branco. O primeiro registro emocional cria o ponto zero da sua jornada.',
+        ? `Seu último registro trouxe ${EMOTION_LABELS[latestEntry.emotion_primary] ?? 'um estado interno'} para a superfície. O mapa ainda está formando memória, mas já existe um ponto de retorno.`
+        : 'O mapa ainda está em branco. O primeiro registro emocional cria o ponto zero da sua jornada.',
       kind: 'emotion',
       confidence: 'cultivando',
     },
@@ -88,8 +88,8 @@ function buildEarlyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
       id: 'early-streak',
       title: 'Continuidade',
       text: streak > 0
-        ? `Voce tem ${streak} dia(s) de sequencia. O proximo padrao nasce quando esse retorno vira repeticao.`
-        : 'Ainda nao existe sequencia ativa. Voltar amanha sera o primeiro padrao positivo detectavel.',
+        ? `Você tem ${streak} dia(s) de sequência. O próximo padrão nasce quando esse retorno vira repetição.`
+        : 'Ainda não existe sequência ativa. Voltar amanhã será o primeiro padrão positivo detectável.',
       kind: 'consistency',
       confidence: 'cultivando',
     },
@@ -97,8 +97,8 @@ function buildEarlyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
       id: 'early-root',
       title: 'Raiz observada',
       text: strongestRoot
-        ? `A raiz "${strongestRoot.name}" e a mais forte agora, com ${strongestRoot.strength || 0}% de forca. Continue regando para o sistema entender seu ritmo.`
-        : 'Plante uma semente e regue uma raiz para o mapa conectar intencao com acao.',
+        ? `A raiz "${strongestRoot.name}" é a mais forte agora, com ${strongestRoot.strength || 0}% de força. Continue regando para o sistema entender seu ritmo.`
+        : 'Plante uma semente e regue uma raiz para o mapa conectar intenção com ação.',
       kind: 'seed',
       confidence: 'cultivando',
     },
@@ -125,8 +125,8 @@ function buildReadyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
     const [emotion, count] = emotionTop;
     insights.push({
       id: 'dominant-emotion',
-      title: 'Emocao recorrente',
-      text: `Nos ultimos registros, ${EMOTION_LABELS[emotion] ?? emotion} apareceu ${count} vez(es). Esse estado parece ser uma chave importante para entender seu momento atual.`,
+      title: 'Emoção recorrente',
+      text: `Nos últimos registros, ${EMOTION_LABELS[emotion] ?? emotion} apareceu ${count} vez(es). Esse estado parece ser uma chave importante para entender seu momento atual.`,
       kind: 'emotion',
       confidence: count >= 5 ? 'forte' : 'inicial',
     });
@@ -136,7 +136,7 @@ function buildReadyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
     const [weekday, count] = weekdayTop;
     insights.push({
       id: 'best-day',
-      title: 'Dia com mais presenca',
+      title: 'Dia com mais presença',
       text: `${weekday} apareceu como seu dia com mais registros recentes (${count}). Vale observar o que esse dia tem de diferente na sua rotina.`,
       kind: 'time',
       confidence: count >= 4 ? 'forte' : 'inicial',
@@ -147,8 +147,8 @@ function buildReadyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
     id: 'streak-risk',
     title: streak >= 7 ? 'Ritmo protegido' : 'Ponto de risco',
     text: streak >= 7
-      ? `Sua sequencia de ${streak} dias ja virou um ativo. Proteja o horario ou ritual que tornou isso possivel.`
-      : 'Seu mapa mostra uma oportunidade simples: criar uma sequencia curta de 3 dias antes de tentar mudar tudo.',
+      ? `Sua sequência de ${streak} dias já virou um ativo. Proteja o horário ou ritual que tornou isso possível.`
+      : 'Seu mapa mostra uma oportunidade simples: criar uma sequência curta de 3 dias antes de tentar mudar tudo.',
     kind: streak >= 7 ? 'consistency' : 'risk',
     confidence: streak >= 7 ? 'forte' : 'inicial',
   });
@@ -157,7 +157,7 @@ function buildReadyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
     insights.push({
       id: 'strong-root',
       title: 'Raiz que sustenta',
-      text: `A raiz "${strongestRoot.name}" e a mais forte agora (${strongestRoot.strength || 0}%). Ela pode virar gatilho para outras acoes menores.`,
+      text: `A raiz "${strongestRoot.name}" é a mais forte agora (${strongestRoot.strength || 0}%). Ela pode virar gatilho para outras ações menores.`,
       kind: 'seed',
       confidence: (strongestRoot.strength || 0) >= 70 ? 'forte' : 'inicial',
     });
@@ -167,7 +167,7 @@ function buildReadyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
     insights.push({
       id: 'weak-root',
       title: 'Raiz em risco',
-      text: `A raiz "${weakestRoot.name}" esta com ${weakestRoot.strength || 0}%. Uma unica rega nesta semana ja muda a leitura do seu jardim.`,
+      text: `A raiz "${weakestRoot.name}" está com ${weakestRoot.strength || 0}%. Uma única rega nesta semana já muda a leitura do seu jardim.`,
       kind: 'risk',
       confidence: 'inicial',
     });
@@ -177,7 +177,7 @@ function buildReadyInsights(entries: DiaryEntry[], seeds: Seed[], streak: number
     insights.push({
       id: 'neglected-seed',
       title: 'Semente silenciosa',
-      text: `A semente "${neglectedSeed.name}" parece receber menos energia que as outras. Talvez ela precise de uma raiz mais facil para voltar ao ciclo.`,
+      text: `A semente "${neglectedSeed.name}" parece receber menos energia que as outras. Talvez ela precise de uma raiz mais fácil para voltar ao ciclo.`,
       kind: 'seed',
       confidence: activeSeeds.length >= 2 ? 'forte' : 'inicial',
     });
@@ -203,10 +203,10 @@ export async function getPatternMap(userId: string): Promise<PatternMap> {
     totalEntries: entries.length,
     activeDays,
     requiredDays: 18,
-    headline: ready ? 'Seu jardim ja revela padroes.' : 'Seu mapa esta criando memoria.',
+    headline: ready ? 'Seu jardim já revela padrões.' : 'Seu mapa está criando memória.',
     summary: ready
-      ? 'As descobertas abaixo cruzam registros emocionais, dias de presenca, sementes e raizes para sugerir onde existe energia ou risco.'
-      : `Faltam ${Math.max(0, 18 - activeDays)} dia(s) ativos para liberar uma leitura mais confiavel. Enquanto isso, estes sao sinais iniciais.`,
+      ? 'As descobertas abaixo cruzam registros emocionais, dias de presença, sementes e raízes para sugerir onde existe energia ou risco.'
+      : `Faltam ${Math.max(0, 18 - activeDays)} dia(s) ativos para liberar uma leitura mais confiável. Enquanto isso, estes são sinais iniciais.`,
     insights: ready
       ? buildReadyInsights(entries, seeds, streak)
       : buildEarlyInsights(entries, seeds, streak),

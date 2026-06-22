@@ -17,6 +17,8 @@ import { getCurrentUser, signOut } from '@/services/authService';
 import { getGrowthProfile, type GrowthProfile } from '@/services/growthService';
 import { DEV_AUTH_ENABLED } from '@/lib/devAuth';
 import { useTheme, type AppTheme } from '@/lib/theme';
+import { SE_TABS } from '@/constants/supereu';
+import { useSuperEuStore } from '@/stores/superEuStore';
 
 export default function Profile() {
   const { theme, themeName, toggleTheme } = useTheme();
@@ -24,6 +26,9 @@ export default function Profile() {
   const colors = theme.colors;
   const { profile } = useAuth();
   const { streak } = useDiary();
+  const visibleModules = useSuperEuStore((state) => state.visibleModules);
+  const toggleModuleVisibility = useSuperEuStore((state) => state.toggleModuleVisibility);
+  const resetVisibleModules = useSuperEuStore((state) => state.resetVisibleModules);
   const [growth, setGrowth] = useState<GrowthProfile | null>(null);
   const [loadingGrowth, setLoadingGrowth] = useState(false);
 
@@ -39,6 +44,12 @@ export default function Profile() {
   }, []));
 
   async function handleLogout() {
+    if (DEV_AUTH_ENABLED) {
+      await signOut();
+      router.replace('/');
+      return;
+    }
+
     Alert.alert('Reiniciar', 'Voltar para a tela inicial?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -88,7 +99,7 @@ export default function Profile() {
                 <Ionicons name="flower-outline" size={22} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.growthKicker}>Nivel {growth.level.level}</Text>
+                <Text style={styles.growthKicker}>Nível {growth.level.level}</Text>
                 <Text style={styles.growthTitle}>{growth.level.name}</Text>
               </View>
               <Text style={styles.score}>{growth.score}</Text>
@@ -99,7 +110,7 @@ export default function Profile() {
             </View>
             {growth.nextAchievement ? (
               <Text style={styles.nextLine}>
-                Proxima conquista: {growth.nextAchievement.title}
+                Próxima conquista: {growth.nextAchievement.title}
                 {growth.nextAchievement.distance > 0 ? ` - faltam ${growth.nextAchievement.distance}` : ''}
               </Text>
             ) : null}
@@ -128,7 +139,7 @@ export default function Profile() {
         </>
       ) : null}
 
-      <Text style={styles.sectionLabel}>APARENCIA</Text>
+      <Text style={styles.sectionLabel}>APARÊNCIA</Text>
       <View style={styles.settingsCard}>
         <View style={styles.settingRow}>
           <View style={styles.settingLeft}>
@@ -147,13 +158,46 @@ export default function Profile() {
         </View>
       </View>
 
+      <Text style={styles.sectionLabel}>ABAS DO SUPER EU</Text>
+      <View style={styles.settingsCard}>
+        {SE_TABS.map((tab, index) => {
+          const isVisible = visibleModules.includes(tab.id);
+          const isLastVisible = isVisible && visibleModules.length === 1;
+          return (
+            <View key={tab.id} style={[styles.settingRow, index > 0 && styles.rowBorder]}>
+              <View style={styles.settingLeft}>
+                <Ionicons name={isVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={isVisible ? colors.primary : colors.subtle} />
+                <View>
+                  <Text style={styles.settingLabel}>{tab.label}</Text>
+                  <Text style={styles.settingHint}>{isVisible ? 'Aparece na barra do Super Eu.' : 'Oculta da barra do Super Eu.'}</Text>
+                </View>
+              </View>
+              <Switch
+                value={isVisible}
+                onValueChange={() => toggleModuleVisibility(tab.id)}
+                disabled={isLastVisible}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={isVisible ? colors.primaryText : colors.surfaceElevated}
+              />
+            </View>
+          );
+        })}
+        <TouchableOpacity style={[styles.settingRow, styles.rowBorder]} onPress={resetVisibleModules}>
+          <View style={styles.settingLeft}>
+            <Ionicons name="refresh-outline" size={20} color={colors.accent} />
+            <Text style={styles.settingLabel}>Mostrar todas novamente</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.sectionLabel}>RITMO</Text>
       <View style={styles.settingsCard}>
         <View style={styles.settingRow}>
           <View style={styles.settingLeft}>
             <Ionicons name="notifications-outline" size={20} color={colors.accent} />
             <View>
-              <Text style={styles.settingLabel}>Lembrete diario</Text>
+              <Text style={styles.settingLabel}>Lembrete diário</Text>
               <Text style={styles.settingHint}>Um check-in curto no fim do dia.</Text>
             </View>
           </View>
@@ -166,10 +210,28 @@ export default function Profile() {
         <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/report/weekly')}>
           <View style={styles.settingLeft}>
             <Ionicons name="analytics-outline" size={20} color={colors.success} />
-            <Text style={styles.settingLabel}>Relatorio semanal</Text>
+            <Text style={styles.settingLabel}>Relatório semanal</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
         </TouchableOpacity>
+      </View>
+
+      <Text style={styles.sectionLabel}>INTELIGÊNCIA ARTIFICIAL</Text>
+      <View style={styles.settingsCard}>
+        <View style={styles.settingRow}>
+          <View style={styles.settingLeft}>
+            <Ionicons name="sparkles-outline" size={20} color={colors.primary} />
+            <View>
+              <Text style={styles.settingLabel}>
+                {process.env.EXPO_PUBLIC_USE_MOCK_AI === 'false' ? 'IA real ativada' : 'IA mockada ativa'}
+              </Text>
+              <Text style={styles.settingHint}>
+                Modelo: {process.env.EXPO_PUBLIC_QWEN_MODEL || 'não configurado'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.settingValue}>{process.env.EXPO_PUBLIC_USE_MOCK_AI === 'false' ? 'API' : 'Mock'}</Text>
+        </View>
       </View>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>

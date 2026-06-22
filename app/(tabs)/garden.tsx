@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSeed } from '@/hooks/useSeed';
 import { RootCard } from '@/components/seed/RootCard';
 import { SeedStatus } from '@/components/seed/SeedStatus';
@@ -28,7 +28,7 @@ const emptyRootForm: RootFormState = {
 };
 
 const ROOT_TYPE_OPTIONS: { value: RootType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { value: 'daily', label: 'Diaria', icon: 'sunny-outline' },
+  { value: 'daily', label: 'Diária', icon: 'sunny-outline' },
   { value: 'weekly', label: 'Semanal', icon: 'calendar-outline' },
   { value: 'milestone', label: 'Marco', icon: 'flag-outline' },
 ];
@@ -40,11 +40,11 @@ function getSeedProgress(seed: Seed) {
 }
 
 function getGardenStage(progress: number) {
-  if (progress >= 90) return { icon: 'diamond-outline' as const, title: 'Jardim lendario', subtitle: 'Esta semente virou uma forca estavel.', next: 'Mantenha o ritmo e colha frutos.' };
-  if (progress >= 70) return { icon: 'flower-outline' as const, title: 'Arvore forte', subtitle: 'As raizes estao sustentando progresso real.', next: 'Proteja a consistencia.' };
-  if (progress >= 40) return { icon: 'leaf' as const, title: 'Crescimento visivel', subtitle: 'A semente ja mostra sinais claros de vida.', next: 'Regue a raiz mais fraca.' };
-  if (progress > 0) return { icon: 'leaf-outline' as const, title: 'Broto em formacao', subtitle: 'O primeiro movimento ja apareceu.', next: 'Regue uma raiz hoje.' };
-  return { icon: 'ellipse-outline' as const, title: 'Solo preparado', subtitle: 'A semente esta pronta para receber energia.', next: 'Crie ou regue a primeira raiz.' };
+  if (progress >= 90) return { icon: 'diamond-outline' as const, title: 'Jardim lendário', subtitle: 'Esta semente virou uma força estável.', next: 'Mantenha o ritmo e colha frutos.' };
+  if (progress >= 70) return { icon: 'flower-outline' as const, title: 'Árvore forte', subtitle: 'As raízes estão sustentando progresso real.', next: 'Proteja a consistência.' };
+  if (progress >= 40) return { icon: 'leaf' as const, title: 'Crescimento visível', subtitle: 'A semente já mostra sinais claros de vida.', next: 'Regue a raiz mais fraca.' };
+  if (progress > 0) return { icon: 'leaf-outline' as const, title: 'Broto em formação', subtitle: 'O primeiro movimento já apareceu.', next: 'Regue uma raiz hoje.' };
+  return { icon: 'ellipse-outline' as const, title: 'Solo preparado', subtitle: 'A semente está pronta para receber energia.', next: 'Crie ou regue a primeira raiz.' };
 }
 
 function getRootStats(roots: Root[]) {
@@ -58,6 +58,7 @@ export default function Garden() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
+  const { seedId: routeSeedId } = useLocalSearchParams<{ seedId?: string }>();
   const { seed, seeds, loading, refetch, userId } = useSeed();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSeedId, setSelectedSeedId] = useState<string | null>(null);
@@ -73,11 +74,16 @@ export default function Garden() {
       return;
     }
 
+    if (routeSeedId && seeds.some(current => current.id === routeSeedId)) {
+      setSelectedSeedId(routeSeedId);
+      return;
+    }
+
     const stillExists = seeds.some(current => current.id === selectedSeedId);
     if (!selectedSeedId || !stillExists) {
       setSelectedSeedId(seed?.id ?? seeds[0].id);
     }
-  }, [seed?.id, seeds, selectedSeedId]);
+  }, [routeSeedId, seed?.id, seeds, selectedSeedId]);
 
   const selectedSeed = useMemo(
     () => seeds.find(current => current.id === selectedSeedId) ?? seed ?? seeds[0] ?? null,
@@ -98,7 +104,7 @@ export default function Garden() {
       await refetch();
     } catch (error) {
       console.error('Failed to delete seed', error);
-      Alert.alert('Erro', 'Nao foi possivel excluir a semente. Tente novamente.');
+      Alert.alert('Erro', 'Não foi possível excluir a semente. Tente novamente.');
     }
   }
 
@@ -108,7 +114,7 @@ export default function Garden() {
       return;
     }
 
-    Alert.alert('Excluir semente', 'Esta acao remove a semente e todo o progresso dela.', [
+    Alert.alert('Excluir semente', 'Esta ação remove a semente e todo o progresso dela.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Excluir', style: 'destructive', onPress: handleDeleteSeed },
     ]);
@@ -155,7 +161,7 @@ export default function Garden() {
       await refetch();
     } catch (error) {
       console.error('Failed to save root', error);
-      Alert.alert('Erro', 'Nao foi possivel salvar a raiz.');
+      Alert.alert('Erro', 'Não foi possível salvar a raiz.');
     } finally {
       setSavingRoot(false);
     }
@@ -168,7 +174,7 @@ export default function Garden() {
       await refetch();
     } catch (error) {
       console.error('Failed to delete root', error);
-      Alert.alert('Erro', 'Nao foi possivel excluir a raiz.');
+      Alert.alert('Erro', 'Não foi possível excluir a raiz.');
     }
   }
 
@@ -199,7 +205,7 @@ export default function Garden() {
           <Ionicons name="leaf-outline" size={44} color={colors.success} />
         </View>
         <Text style={styles.emptyTitle}>Comece com uma semente.</Text>
-        <Text style={styles.emptySubtitle}>Escolha um objetivo importante. O app transforma isso em pequenas acoes que voce consegue cumprir.</Text>
+        <Text style={styles.emptySubtitle}>Escolha um objetivo importante. O app transforma isso em pequenas ações que você consegue cumprir.</Text>
         <TouchableOpacity style={styles.plantBtn} onPress={() => router.push('/seed/create')}>
           <Ionicons name="add-circle" size={18} color={colors.primaryText} />
           <Text style={styles.plantBtnText}>Plantar semente</Text>
@@ -252,7 +258,7 @@ export default function Garden() {
               <Ionicons name={stage.icon} size={44} color={colors.success} />
             </View>
             <View style={styles.stageCopy}>
-              <Text style={styles.stageKicker}>ESTAGIO DO JARDIM</Text>
+              <Text style={styles.stageKicker}>ESTÁGIO DO JARDIM</Text>
               <Text style={styles.stageTitle}>{stage.title}</Text>
               <Text style={styles.stageSubtitle}>{stage.subtitle}</Text>
             </View>
@@ -268,7 +274,7 @@ export default function Garden() {
         </View>
 
         <View style={styles.statsGrid}>
-          <StatCard label="Raizes" value={String(roots.length)} icon="git-branch-outline" theme={theme} />
+          <StatCard label="Raízes" value={String(roots.length)} icon="git-branch-outline" theme={theme} />
           <StatCard label="Regas" value={String(rootStats.completed)} icon="water-outline" theme={theme} />
           <StatCard label="Fortes" value={String(rootStats.strong)} icon="shield-checkmark-outline" theme={theme} />
         </View>
@@ -286,8 +292,8 @@ export default function Garden() {
 
         <View style={styles.rootsHeader}>
           <View>
-            <Text style={styles.sectionLabel}>RAIZES ATIVAS</Text>
-            <Text style={styles.rootsHint}>Crie suas proprias acoes para ganhar XP e fortalecer a semente.</Text>
+            <Text style={styles.sectionLabel}>RAÍZES ATIVAS</Text>
+            <Text style={styles.rootsHint}>Crie suas próprias ações para ganhar XP e fortalecer a semente.</Text>
           </View>
           <TouchableOpacity style={styles.addRootBtn} onPress={openCreateRoot}>
             <Ionicons name="add" size={18} color={colors.primaryText} />
@@ -309,7 +315,7 @@ export default function Garden() {
           <TouchableOpacity style={styles.emptyRootsCard} onPress={openCreateRoot}>
             <Ionicons name="git-branch-outline" size={26} color={colors.primary} />
             <Text style={styles.emptyRootsTitle}>Nenhuma raiz ainda</Text>
-            <Text style={styles.emptyRootsText}>Crie a primeira acao que vai sustentar essa semente.</Text>
+            <Text style={styles.emptyRootsText}>Crie a primeira ação que vai sustentar essa semente.</Text>
           </TouchableOpacity>
         )}
 
@@ -327,7 +333,7 @@ export default function Garden() {
             <View style={styles.modalHeader}>
               <View>
                 <Text style={styles.modalKicker}>{rootForm.id ? 'EDITAR RAIZ' : 'NOVA RAIZ'}</Text>
-                <Text style={styles.modalTitle}>{rootForm.id ? 'Ajustar acao' : 'Criar acao de cultivo'}</Text>
+                <Text style={styles.modalTitle}>{rootForm.id ? 'Ajustar ação' : 'Criar ação de cultivo'}</Text>
               </View>
               <TouchableOpacity style={styles.modalClose} onPress={() => setRootModalVisible(false)}>
                 <Ionicons name="close" size={20} color={colors.muted} />
@@ -344,7 +350,7 @@ export default function Garden() {
             <TextInput
               value={rootForm.description}
               onChangeText={(description) => setRootForm(current => ({ ...current, description }))}
-              placeholder="Descricao ou motivo"
+              placeholder="Descrição ou motivo"
               placeholderTextColor={colors.subtle}
               style={[styles.input, styles.textarea]}
               multiline
@@ -370,7 +376,7 @@ export default function Garden() {
             <TextInput
               value={rootForm.frequency}
               onChangeText={(frequency) => setRootForm(current => ({ ...current, frequency }))}
-              placeholder="Frequencia"
+              placeholder="Frequência"
               placeholderTextColor={colors.subtle}
               style={styles.input}
               keyboardType="numeric"

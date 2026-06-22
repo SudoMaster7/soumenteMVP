@@ -4,10 +4,20 @@ import {
   DEFAULT_HABITS, DEFAULT_GOALS, DEFAULT_PURCHASES, DEFAULT_FINANCE,
 } from '@/constants/supereu';
 import type {
-  SEHabit, SEGoal, SEPurchase, SEFinanceEntry, SEDiaryEntry, OraclePhrase,
+  SEHabit, SEGoal, SEPurchase, SEFinanceEntry, SEDiaryEntry, OraclePhrase, SuperEuModule,
 } from '@/types/supereu';
 
 const STORE_KEY = 'super-eu-store';
+const DEFAULT_VISIBLE_MODULES: SuperEuModule[] = [
+  'oracle',
+  'mentor',
+  'padroes',
+  'rituais',
+  'objetivos',
+  'plano',
+  'financas',
+  'grimorio',
+];
 
 interface SuperEuState {
   habits: SEHabit[];
@@ -17,6 +27,7 @@ interface SuperEuState {
   diary: SEDiaryEntry[];
   oracle: OraclePhrase | null;
   oracleDateKey: string; // YYYY-MM-DD
+  visibleModules: SuperEuModule[];
 
   // Habits
   toggleHabitDay: (habitId: string, dayIndex: number) => void;
@@ -49,11 +60,15 @@ interface SuperEuState {
 
   // Oracle
   setOracle: (oracle: OraclePhrase, dateKey: string) => void;
+
+  // Preferences
+  toggleModuleVisibility: (module: SuperEuModule) => void;
+  resetVisibleModules: () => void;
 }
 
 type SuperEuSnapshot = Pick<
   SuperEuState,
-  'habits' | 'goals' | 'purchases' | 'finance' | 'diary' | 'oracle' | 'oracleDateKey'
+  'habits' | 'goals' | 'purchases' | 'finance' | 'diary' | 'oracle' | 'oracleDateKey' | 'visibleModules'
 >;
 
 const createSnapshot = (state: SuperEuState): SuperEuSnapshot => ({
@@ -64,6 +79,7 @@ const createSnapshot = (state: SuperEuState): SuperEuSnapshot => ({
   diary: state.diary,
   oracle: state.oracle,
   oracleDateKey: state.oracleDateKey,
+  visibleModules: state.visibleModules,
 });
 
 const saveSnapshot = async (state: SuperEuState) => {
@@ -88,6 +104,7 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
     diary: [],
     oracle: null,
     oracleDateKey: '',
+    visibleModules: DEFAULT_VISIBLE_MODULES,
 
     toggleHabitDay: (habitId, dayIndex) =>
       setAndPersist((s) => ({
@@ -164,6 +181,18 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
       setAndPersist((s) => ({ diary: s.diary.filter((e) => e.id !== entryId) })),
 
     setOracle: (oracle, dateKey) => setAndPersist({ oracle, oracleDateKey: dateKey }),
+
+    toggleModuleVisibility: (module) =>
+      setAndPersist((s) => {
+        const isVisible = s.visibleModules.includes(module);
+        if (isVisible && s.visibleModules.length === 1) return {};
+        return {
+          visibleModules: isVisible
+            ? s.visibleModules.filter((item) => item !== module)
+            : DEFAULT_VISIBLE_MODULES.filter((item) => item === module || s.visibleModules.includes(item)),
+        };
+      }),
+    resetVisibleModules: () => setAndPersist({ visibleModules: DEFAULT_VISIBLE_MODULES }),
   };
 });
 
@@ -181,6 +210,9 @@ const hydrateSuperEuStore = async () => {
       diary: snapshot.diary ?? [],
       oracle: snapshot.oracle ?? null,
       oracleDateKey: snapshot.oracleDateKey ?? '',
+      visibleModules: snapshot.visibleModules?.length
+        ? DEFAULT_VISIBLE_MODULES.filter((module) => snapshot.visibleModules?.includes(module))
+        : DEFAULT_VISIBLE_MODULES,
     });
   } catch (error) {
     console.warn('Failed to hydrate Super Eu store', error);

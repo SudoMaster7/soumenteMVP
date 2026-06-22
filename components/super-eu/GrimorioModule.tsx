@@ -107,8 +107,8 @@ export default function GrimorioModule() {
           <Ionicons name="book-outline" size={23} color={colors.primary} />
         </View>
         <View style={styles.introTextWrap}>
-          <Text style={[styles.introTitle, { color: colors.text }]}>Grimorio interno</Text>
-          <Text style={[styles.introSub, { color: colors.muted }]}>Registre percepcoes, padroes e sinais que voce quer lembrar.</Text>
+          <Text style={[styles.introTitle, { color: colors.text }]}>Grimório interno</Text>
+          <Text style={[styles.introSub, { color: colors.muted }]}>Registre percepções, padrões e sinais que você quer lembrar.</Text>
         </View>
       </View>
 
@@ -129,7 +129,7 @@ export default function GrimorioModule() {
                   style={[styles.smallActionButton, { backgroundColor: colors.primarySoft }]}
                   onPress={() => openEdit(entry)}
                   accessibilityRole="button"
-                  accessibilityLabel="Editar entrada do grimorio"
+                  accessibilityLabel="Editar entrada do grimório"
                 >
                   <Ionicons name="create-outline" size={16} color={colors.primary} />
                 </TouchableOpacity>
@@ -137,7 +137,7 @@ export default function GrimorioModule() {
                   style={[styles.smallActionButton, { backgroundColor: colors.dangerSoft }]}
                   onPress={() => deleteDiaryEntry(entry.id)}
                   accessibilityRole="button"
-                  accessibilityLabel="Excluir entrada do grimorio"
+                  accessibilityLabel="Excluir entrada do grimório"
                 >
                   <Ionicons name="trash-outline" size={16} color={colors.danger} />
                 </TouchableOpacity>
@@ -160,7 +160,7 @@ export default function GrimorioModule() {
               <View style={[styles.reflectionCard, { backgroundColor: colors.backgroundAlt, borderColor: colors.primary }]}> 
                 <View style={styles.reflectionHeader}>
                   <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
-                  <Text style={[styles.reflectionLabel, { color: colors.primary }]}>Reflexao do Oracle</Text>
+                  <Text style={[styles.reflectionLabel, { color: colors.primary }]}>Reflexão do Oráculo</Text>
                 </View>
                 <Text style={[styles.reflectionText, { color: colors.text }]}>{entry.aiReflection}</Text>
               </View>
@@ -175,7 +175,7 @@ export default function GrimorioModule() {
                 ) : (
                   <>
                     <Ionicons name="sparkles-outline" size={16} color={colors.primary} />
-                    <Text style={[styles.oracleButtonText, { color: colors.primary }]}>Gerar reflexao</Text>
+                    <Text style={[styles.oracleButtonText, { color: colors.primary }]}>Gerar reflexão</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -188,7 +188,7 @@ export default function GrimorioModule() {
         <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
           <Ionicons name="journal-outline" size={28} color={colors.primary} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum registro ainda</Text>
-          <Text style={[styles.emptyText, { color: colors.muted }]}>Comece com uma frase simples sobre como voce esta hoje.</Text>
+          <Text style={[styles.emptyText, { color: colors.muted }]}>Comece com uma frase simples sobre como você está hoje.</Text>
         </View>
       ) : null}
 

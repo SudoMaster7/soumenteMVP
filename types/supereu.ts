@@ -3,7 +3,7 @@ export interface SEHabit {
   icon: string;
   name: string;
   streak: number;
-  days: boolean[]; // 7 elements, Mon–Sun
+  days: boolean[]; // 7 elements, Monday-Sunday
 }
 
 export interface SEGoal {
@@ -11,7 +11,7 @@ export interface SEGoal {
   title: string;
   category: 'Produto' | 'Negócio' | 'Corpo' | 'Finanças' | 'Espiritual' | 'Relacionamentos';
   deadline: string; // YYYY-MM-DD
-  progress: number; // 0–100
+  progress: number; // 0-100
   priority: 'high' | 'medium' | 'low';
 }
 
@@ -38,7 +38,7 @@ export interface SEFinanceEntry {
 export interface SEDiaryEntry {
   id: string;
   date: string;
-  mood: string; // emoji
+  mood: string;
   text: string;
   tags: string[];
   aiReflection?: string;

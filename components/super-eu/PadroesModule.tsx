@@ -17,7 +17,7 @@ const KIND_ICON: Record<PatternInsight['kind'], keyof typeof Ionicons.glyphMap> 
 const CONFIDENCE_LABEL: Record<PatternInsight['confidence'], string> = {
   cultivando: 'Cultivando dados',
   inicial: 'Sinal inicial',
-  forte: 'Padrao forte',
+  forte: 'Padrão forte',
 };
 
 export default function PadroesModule() {
@@ -56,7 +56,7 @@ export default function PadroesModule() {
   if (!map) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emptyTitle}>Mapa indisponivel</Text>
+        <Text style={styles.emptyTitle}>Mapa indisponível</Text>
         <TouchableOpacity style={styles.retryButton} onPress={load}>
           <Text style={styles.retryText}>Tentar novamente</Text>
         </TouchableOpacity>
@@ -70,7 +70,7 @@ export default function PadroesModule() {
         <View style={styles.heroIcon}>
           <Ionicons name="git-network-outline" size={25} color={colors.primary} />
         </View>
-        <Text style={styles.kicker}>MAPA DE PADROES</Text>
+        <Text style={styles.kicker}>MAPA DE PADRÕES</Text>
         <Text style={styles.heroTitle}>{map.headline}</Text>
         <Text style={styles.heroText}>{map.summary}</Text>
       </View>
@@ -78,7 +78,7 @@ export default function PadroesModule() {
       <View style={styles.presenceCard}>
         <View style={styles.presenceHeader}>
           <View>
-            <Text style={styles.presenceLabel}>Presenca nos ultimos 30 dias</Text>
+            <Text style={styles.presenceLabel}>Presença nos últimos 30 dias</Text>
             <Text style={styles.presenceValue}>{map.activeDays}/30 dias</Text>
           </View>
           <View style={styles.scoreBadge}>
@@ -91,7 +91,7 @@ export default function PadroesModule() {
         <Text style={styles.presenceHint}>
           {map.ready
             ? 'Leitura completa liberada. Continue registrando para refinar as descobertas.'
-            : `Meta inicial: ${map.requiredDays} dias ativos para o sistema revelar padroes mais confiaveis.`}
+            : `Meta inicial: ${map.requiredDays} dias ativos para o sistema revelar padrões mais confiáveis.`}
         </Text>
       </View>
 
@@ -114,7 +114,7 @@ export default function PadroesModule() {
 
       <TouchableOpacity style={styles.refreshButton} onPress={load}>
         <Ionicons name="refresh" size={16} color={colors.primary} />
-        <Text style={styles.refreshText}>Recalcular padroes</Text>
+        <Text style={styles.refreshText}>Recalcular padrões</Text>
       </TouchableOpacity>
     </ScrollView>
   );

@@ -26,7 +26,7 @@ export default function WeeklyReport() {
       setIntention(result.intention);
     } catch (error) {
       console.error('Failed to generate weekly report', error);
-      Alert.alert('Erro', 'Nao foi possivel gerar o relatorio.');
+      Alert.alert('Erro', 'Não foi possível gerar o relatório.');
     } finally {
       setLoading(false);
     }
@@ -41,7 +41,7 @@ export default function WeeklyReport() {
       setReport(current => current ? { ...current, intention } : current);
     } catch (error) {
       console.error('Failed to save weekly intention', error);
-      Alert.alert('Erro', 'Nao foi possivel salvar a intencao.');
+      Alert.alert('Erro', 'Não foi possível salvar a intenção.');
     } finally {
       setSavingIntention(false);
     }
@@ -60,21 +60,21 @@ export default function WeeklyReport() {
         <View style={styles.heroIcon}>
           <Ionicons name="analytics-outline" size={24} color={colors.primary} />
         </View>
-        <Text style={styles.eyebrow}>RELATORIO SEMANAL</Text>
+        <Text style={styles.eyebrow}>RELATÓRIO SEMANAL</Text>
         <Text style={styles.title}>Seu mapa de continuidade.</Text>
-        <Text style={styles.subtitle}>Veja o que apareceu, celebre o que ja se moveu e escolha um passo pequeno para manter o ritmo.</Text>
+        <Text style={styles.subtitle}>Veja o que apareceu, celebre o que já se moveu e escolha um passo pequeno para manter o ritmo.</Text>
       </View>
 
       {!report ? (
         <View style={styles.startCard}>
           <Text style={styles.startTitle}>Gerar leitura da semana</Text>
-          <Text style={styles.startText}>O relatorio cruza diario, semente e raizes para mostrar um resumo motivador do seu progresso.</Text>
+          <Text style={styles.startText}>O relatório cruza diário, semente e raízes para mostrar um resumo motivador do seu progresso.</Text>
           <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} disabled={loading}>
             {loading ? (
               <ActivityIndicator color={colors.primaryText} />
             ) : (
               <>
-                <Text style={styles.generateText}>Gerar relatorio</Text>
+                <Text style={styles.generateText}>Gerar relatório</Text>
                 <Ionicons name="sparkles-outline" size={18} color={colors.primaryText} />
               </>
             )}
@@ -90,7 +90,7 @@ export default function WeeklyReport() {
           <View style={styles.scoreCard}>
             <View style={styles.scoreHeader}>
               <View>
-                <Text style={styles.scoreLabel}>Consistencia</Text>
+                <Text style={styles.scoreLabel}>Consistência</Text>
                 <Text style={styles.scoreValue}>{consistency}%</Text>
               </View>
               <View style={styles.daysBadge}>
@@ -109,7 +109,7 @@ export default function WeeklyReport() {
                 <Ionicons name="flower-outline" size={22} color={colors.primary} />
               </View>
               <View style={styles.levelCopy}>
-                <Text style={styles.levelKicker}>Nivel {report.consciousness.level}</Text>
+                <Text style={styles.levelKicker}>Nível {report.consciousness.level}</Text>
                 <Text style={styles.levelName}>{report.consciousness.name}</Text>
               </View>
             </View>
@@ -117,13 +117,13 @@ export default function WeeklyReport() {
             <View style={styles.track}>
               <View style={[styles.fill, { width: `${report.consciousness.progress}%`, backgroundColor: colors.accent }]} />
             </View>
-            <Text style={styles.levelNext}>Proximo cultivo: {report.consciousness.nextLabel}</Text>
+            <Text style={styles.levelNext}>Próximo cultivo: {report.consciousness.nextLabel}</Text>
           </View>
 
           <View style={styles.metricsRow}>
             <MetricCard
               icon="heart-outline"
-              label="Emocao dominante"
+              label="Emoção dominante"
               value={report.dominantEmotion.label}
               detail={report.dominantEmotion.count > 0 ? `${report.dominantEmotion.count} registro(s)` : 'Sem registros'}
               theme={theme}
@@ -132,15 +132,15 @@ export default function WeeklyReport() {
               icon="leaf-outline"
               label="Semente"
               value={report.seed?.name ?? 'Nenhuma'}
-              detail={report.seed ? `${report.seed.rootProgress}% de raizes` : 'Plante uma semente'}
+              detail={report.seed ? `${report.seed.rootProgress}% de raízes` : 'Plante uma semente'}
               theme={theme}
               tone="accent"
             />
           </View>
 
-          <InsightCard title="Padrao percebido" icon="search-outline" text={report.pattern} theme={theme} />
-          <InsightCard title="Vitoria da semana" icon="trophy-outline" text={report.win} theme={theme} tone="success" />
-          <InsightCard title="Proximo passo" icon="walk-outline" text={report.nextAction} theme={theme} tone="primary" />
+          <InsightCard title="Padrão percebido" icon="search-outline" text={report.pattern} theme={theme} />
+          <InsightCard title="Vitória da semana" icon="trophy-outline" text={report.win} theme={theme} tone="success" />
+          <InsightCard title="Próximo passo" icon="walk-outline" text={report.nextAction} theme={theme} tone="primary" />
 
           {report.newlyUnlockedAchievements.length ? (
             <View style={styles.newAchievementCard}>
@@ -152,12 +152,12 @@ export default function WeeklyReport() {
           ) : report.nextAchievement ? (
             <View style={styles.nextAchievementCard}>
               <View>
-                <Text style={styles.nextAchievementKicker}>PROXIMA CONQUISTA</Text>
+                <Text style={styles.nextAchievementKicker}>PRÓXIMA CONQUISTA</Text>
                 <Text style={styles.nextAchievementTitle}>{report.nextAchievement.title}</Text>
                 <Text style={styles.nextAchievementText}>
                   {report.nextAchievement.distance > 0
-                    ? `Faltam ${report.nextAchievement.distance} ponto(s)/acao(oes) para desbloquear.`
-                    : 'Voce esta perto de desbloquear.'}
+                    ? `Faltam ${report.nextAchievement.distance} ponto(s)/ação(ões) para desbloquear.`
+                    : 'Você está perto de desbloquear.'}
                 </Text>
               </View>
               <Ionicons name="ribbon-outline" size={24} color={colors.accent} />
@@ -167,7 +167,7 @@ export default function WeeklyReport() {
           <View style={styles.intentionCard}>
             <View style={styles.insightHeader}>
               <Ionicons name="flag-outline" size={18} color={colors.accent} />
-              <Text style={[styles.insightTitle, { color: colors.accent }]}>Intencao da proxima semana</Text>
+              <Text style={[styles.insightTitle, { color: colors.accent }]}>Intenção da próxima semana</Text>
             </View>
             <TextInput
               value={intention}
@@ -183,7 +183,7 @@ export default function WeeklyReport() {
               ) : (
                 <>
                   <Ionicons name="checkmark" size={16} color={colors.primaryText} />
-                  <Text style={styles.saveIntentionText}>Salvar intencao</Text>
+                  <Text style={styles.saveIntentionText}>Salvar intenção</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -208,12 +208,12 @@ export default function WeeklyReport() {
 
           {report.seed?.roots.length ? (
             <View style={styles.rootsCard}>
-              <Text style={styles.sectionTitle}>Raizes da semente</Text>
+              <Text style={styles.sectionTitle}>Raízes da semente</Text>
               {report.seed.roots.map(root => (
                 <View key={root.name} style={styles.rootRow}>
                   <View style={styles.rootInfo}>
                     <Text style={styles.rootName}>{root.name}</Text>
-                    <Text style={styles.rootMeta}>{root.count} conclusao(oes)</Text>
+                    <Text style={styles.rootMeta}>{root.count} conclusão(ões)</Text>
                   </View>
                   <Text style={styles.rootStrength}>{root.strength}%</Text>
                 </View>

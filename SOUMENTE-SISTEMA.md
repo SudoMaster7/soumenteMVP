@@ -66,12 +66,22 @@ O usuario pode:
 - criar uma semente;
 - definir tipo, nome e motivo;
 - responder perguntas de aprofundamento;
+- gerar sugestoes de raizes com IA ou fallback local;
+- revisar, editar, remover ou adicionar raizes antes de plantar;
 - plantar a semente;
 - editar informacoes;
 - excluir sementes;
 - visualizar todas as sementes criadas no Jardim.
 
 Essa metafora ajuda o usuario a se relacionar com o objetivo de forma mais emocional, visual e constante.
+
+Fluxo atual de criacao:
+
+1. Criar semente;
+2. Responder perguntas de aprofundamento;
+3. Revisar raizes sugeridas;
+4. Confirmar plantio;
+5. Acompanhar no Jardim.
 
 ### 5. Jardim
 
@@ -432,6 +442,7 @@ A IA nao deve funcionar como um apendice isolado. Ela alimenta partes especifica
 - Oraculo Diario: gera foco, principio e microacao do dia via `fetchDailyOracle`;
 - Mentor conversacional: responde perguntas usando o contexto local via `askSouMenteMentor`;
 - Objetivos: gera leitura pratica de um objetivo via `getGoalInsight`;
+- Sementes: gera sugestoes de raizes via `generateRootsWithAI`;
 - Grimorio: gera reflexao sobre registros internos via `getDiaryReflection`;
 - Mapa de Padroes: hoje usa leitura local via `getPatternMap`, podendo futuramente receber uma camada narrativa por IA;
 - Relatorio Semanal: hoje usa `generateWeeklyReport` com dados locais, podendo futuramente receber insight narrativo do Super Eu.
