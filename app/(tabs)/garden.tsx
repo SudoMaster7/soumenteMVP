@@ -1,6 +1,6 @@
-﻿import {
+import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Platform,
+  TouchableOpacity, ActivityIndicator, RefreshControl, Alert, Platform, Modal, TextInput,
 } from 'react-native';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,9 +8,51 @@ import { router, useFocusEffect } from 'expo-router';
 import { useSeed } from '@/hooks/useSeed';
 import { RootCard } from '@/components/seed/RootCard';
 import { SeedStatus } from '@/components/seed/SeedStatus';
-import { deleteSeed } from '@/services/seedService';
+import { createRoot, deleteRoot, deleteSeed, updateRoot } from '@/services/seedService';
 import { useTheme, type AppTheme } from '@/lib/theme';
-import type { Seed } from '@/types';
+import type { Root, RootType, Seed } from '@/types';
+
+type RootFormState = {
+  id?: string;
+  name: string;
+  description: string;
+  type: RootType;
+  frequency: string;
+};
+
+const emptyRootForm: RootFormState = {
+  name: '',
+  description: '',
+  type: 'daily',
+  frequency: '1',
+};
+
+const ROOT_TYPE_OPTIONS: { value: RootType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { value: 'daily', label: 'Diaria', icon: 'sunny-outline' },
+  { value: 'weekly', label: 'Semanal', icon: 'calendar-outline' },
+  { value: 'milestone', label: 'Marco', icon: 'flag-outline' },
+];
+
+function getSeedProgress(seed: Seed) {
+  const roots = seed.roots || [];
+  if (roots.length === 0) return 0;
+  return Math.round(roots.reduce((acc, root) => acc + (root.strength || 0), 0) / roots.length);
+}
+
+function getGardenStage(progress: number) {
+  if (progress >= 90) return { icon: 'diamond-outline' as const, title: 'Jardim lendario', subtitle: 'Esta semente virou uma forca estavel.', next: 'Mantenha o ritmo e colha frutos.' };
+  if (progress >= 70) return { icon: 'flower-outline' as const, title: 'Arvore forte', subtitle: 'As raizes estao sustentando progresso real.', next: 'Proteja a consistencia.' };
+  if (progress >= 40) return { icon: 'leaf' as const, title: 'Crescimento visivel', subtitle: 'A semente ja mostra sinais claros de vida.', next: 'Regue a raiz mais fraca.' };
+  if (progress > 0) return { icon: 'leaf-outline' as const, title: 'Broto em formacao', subtitle: 'O primeiro movimento ja apareceu.', next: 'Regue uma raiz hoje.' };
+  return { icon: 'ellipse-outline' as const, title: 'Solo preparado', subtitle: 'A semente esta pronta para receber energia.', next: 'Crie ou regue a primeira raiz.' };
+}
+
+function getRootStats(roots: Root[]) {
+  const completed = roots.reduce((total, root) => total + (root.completed_count || 0), 0);
+  const strong = roots.filter(root => (root.strength || 0) >= 70).length;
+  const weak = roots.filter(root => (root.strength || 0) < 40).length;
+  return { completed, strong, weak };
+}
 
 export default function Garden() {
   const { theme } = useTheme();
@@ -19,8 +61,11 @@ export default function Garden() {
   const { seed, seeds, loading, refetch, userId } = useSeed();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSeedId, setSelectedSeedId] = useState<string | null>(null);
+  const [rootModalVisible, setRootModalVisible] = useState(false);
+  const [rootForm, setRootForm] = useState<RootFormState>(emptyRootForm);
+  const [savingRoot, setSavingRoot] = useState(false);
 
-  useFocusEffect(useCallback(() => { refetch(); }, []));
+  useFocusEffect(useCallback(() => { refetch(); }, [refetch]));
 
   useEffect(() => {
     if (seeds.length === 0) {
@@ -69,6 +114,76 @@ export default function Garden() {
     ]);
   }
 
+  function openCreateRoot() {
+    setRootForm(emptyRootForm);
+    setRootModalVisible(true);
+  }
+
+  function openEditRoot(root: Root) {
+    setRootForm({
+      id: root.id,
+      name: root.name,
+      description: root.description ?? '',
+      type: root.type,
+      frequency: String(root.frequency || 1),
+    });
+    setRootModalVisible(true);
+  }
+
+  async function handleSaveRoot() {
+    if (!selectedSeed || !userId || !rootForm.name.trim()) {
+      Alert.alert('Raiz incompleta', 'Digite um nome para a raiz.');
+      return;
+    }
+
+    const payload = {
+      name: rootForm.name.trim(),
+      description: rootForm.description.trim() || undefined,
+      type: rootForm.type,
+      frequency: Math.max(1, Number(rootForm.frequency) || 1),
+    };
+
+    setSavingRoot(true);
+    try {
+      if (rootForm.id) {
+        await updateRoot(rootForm.id, userId, payload);
+      } else {
+        await createRoot(selectedSeed.id, userId, payload);
+      }
+      setRootModalVisible(false);
+      setRootForm(emptyRootForm);
+      await refetch();
+    } catch (error) {
+      console.error('Failed to save root', error);
+      Alert.alert('Erro', 'Nao foi possivel salvar a raiz.');
+    } finally {
+      setSavingRoot(false);
+    }
+  }
+
+  async function handleDeleteRoot(root: Root) {
+    if (!userId) return;
+    try {
+      await deleteRoot(root.id, userId);
+      await refetch();
+    } catch (error) {
+      console.error('Failed to delete root', error);
+      Alert.alert('Erro', 'Nao foi possivel excluir a raiz.');
+    }
+  }
+
+  function confirmDeleteRoot(root: Root) {
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Excluir a raiz "${root.name}"?`)) handleDeleteRoot(root);
+      return;
+    }
+
+    Alert.alert('Excluir raiz', `Remover "${root.name}" e seus registros?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Excluir', style: 'destructive', onPress: () => handleDeleteRoot(root) },
+    ]);
+  }
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -94,81 +209,188 @@ export default function Garden() {
   }
 
   const roots = selectedSeed.roots || [];
-  const avgStrength = roots.length > 0
-    ? Math.round(roots.reduce((acc, r) => acc + (r.strength || 0), 0) / roots.length)
-    : 0;
-  const nextStep = avgStrength === 0 ? 'Regue a primeira raiz hoje.' : avgStrength < 50 ? 'Continue: consistencia vence intensidade.' : 'Sua semente ja esta ganhando corpo.';
+  const avgStrength = getSeedProgress(selectedSeed);
+  const stage = getGardenStage(avgStrength);
+  const rootStats = getRootStats(roots);
+  const xp = Math.min(999, avgStrength * 5 + rootStats.completed * 20 + rootStats.strong * 50);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-    >
-      <View style={styles.headerRow}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.eyebrow}>MEU JARDIM</Text>
-          <Text style={styles.title}>Cultive o que importa.</Text>
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.eyebrow}>MEU JARDIM</Text>
+            <Text style={styles.title}>Cultive o que importa.</Text>
+          </View>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/seed/create')} accessibilityLabel="Plantar nova semente">
+            <Ionicons name="add" size={22} color={colors.primary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/seed/create')}>
-          <Ionicons name="add" size={22} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
 
-      <Text style={styles.sectionLabel}>TODAS AS SEMENTES</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seedList}>
-        {seeds.map(current => (
-          <SeedPill
-            key={current.id}
-            seed={current}
-            selected={current.id === selectedSeed.id}
-            theme={theme}
-            onPress={() => setSelectedSeedId(current.id)}
-          />
-        ))}
+        <Text style={styles.sectionLabel}>TODAS AS SEMENTES</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.seedList}>
+          {seeds.map(current => (
+            <SeedPill
+              key={current.id}
+              seed={current}
+              selected={current.id === selectedSeed.id}
+              theme={theme}
+              onPress={() => setSelectedSeedId(current.id)}
+            />
+          ))}
+        </ScrollView>
+
+        <SeedStatus status={selectedSeed.status as any} name={selectedSeed.name} />
+
+        <View style={styles.stageCard}>
+          <View style={styles.stageTop}>
+            <View style={styles.stageIcon}>
+              <Ionicons name={stage.icon} size={44} color={colors.success} />
+            </View>
+            <View style={styles.stageCopy}>
+              <Text style={styles.stageKicker}>ESTAGIO DO JARDIM</Text>
+              <Text style={styles.stageTitle}>{stage.title}</Text>
+              <Text style={styles.stageSubtitle}>{stage.subtitle}</Text>
+            </View>
+          </View>
+          <View style={styles.progressHeader}>
+            <Text style={styles.progressLabel}>XP {xp}</Text>
+            <Text style={styles.progressPct}>{avgStrength}%</Text>
+          </View>
+          <View style={styles.progressBg}>
+            <View style={[styles.progressFill, { width: `${avgStrength}%` }]} />
+          </View>
+          <Text style={styles.progressHint}>{stage.next}</Text>
+        </View>
+
+        <View style={styles.statsGrid}>
+          <StatCard label="Raizes" value={String(roots.length)} icon="git-branch-outline" theme={theme} />
+          <StatCard label="Regas" value={String(rootStats.completed)} icon="water-outline" theme={theme} />
+          <StatCard label="Fortes" value={String(rootStats.strong)} icon="shield-checkmark-outline" theme={theme} />
+        </View>
+
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/seed/edit', params: { seedId: selectedSeed.id } })}>
+            <Ionicons name="create-outline" size={16} color={colors.primaryText} />
+            <Text style={styles.editBtnText}>Editar semente</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={confirmDeleteSeed}>
+            <Ionicons name="trash-outline" size={16} color={colors.danger} />
+            <Text style={styles.deleteBtnText}>Excluir</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.rootsHeader}>
+          <View>
+            <Text style={styles.sectionLabel}>RAIZES ATIVAS</Text>
+            <Text style={styles.rootsHint}>Crie suas proprias acoes para ganhar XP e fortalecer a semente.</Text>
+          </View>
+          <TouchableOpacity style={styles.addRootBtn} onPress={openCreateRoot}>
+            <Ionicons name="add" size={18} color={colors.primaryText} />
+          </TouchableOpacity>
+        </View>
+
+        {roots.length ? (
+          roots.map(root => (
+            <RootCard
+              key={root.id}
+              root={root}
+              userId={userId}
+              onWatered={refetch}
+              onEdit={openEditRoot}
+              onDelete={confirmDeleteRoot}
+            />
+          ))
+        ) : (
+          <TouchableOpacity style={styles.emptyRootsCard} onPress={openCreateRoot}>
+            <Ionicons name="git-branch-outline" size={26} color={colors.primary} />
+            <Text style={styles.emptyRootsTitle}>Nenhuma raiz ainda</Text>
+            <Text style={styles.emptyRootsText}>Crie a primeira acao que vai sustentar essa semente.</Text>
+          </TouchableOpacity>
+        )}
+
+        {selectedSeed.why ? (
+          <View style={styles.whyCard}>
+            <Text style={styles.whyLabel}>POR QUE ISSO IMPORTA</Text>
+            <Text style={styles.whyText}>"{selectedSeed.why}"</Text>
+          </View>
+        ) : null}
       </ScrollView>
 
-      <SeedStatus status={selectedSeed.status as any} name={selectedSeed.name} />
+      <Modal visible={rootModalVisible} transparent animationType="fade" onRequestClose={() => setRootModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalKicker}>{rootForm.id ? 'EDITAR RAIZ' : 'NOVA RAIZ'}</Text>
+                <Text style={styles.modalTitle}>{rootForm.id ? 'Ajustar acao' : 'Criar acao de cultivo'}</Text>
+              </View>
+              <TouchableOpacity style={styles.modalClose} onPress={() => setRootModalVisible(false)}>
+                <Ionicons name="close" size={20} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
 
-      <View style={styles.progressCard}>
-        <View style={styles.progressHeader}>
-          <Text style={styles.progressLabel}>FORCA DAS RAIZES</Text>
-          <Text style={styles.progressPct}>{avgStrength}%</Text>
+            <TextInput
+              value={rootForm.name}
+              onChangeText={(name) => setRootForm(current => ({ ...current, name }))}
+              placeholder="Nome da raiz"
+              placeholderTextColor={colors.subtle}
+              style={styles.input}
+            />
+            <TextInput
+              value={rootForm.description}
+              onChangeText={(description) => setRootForm(current => ({ ...current, description }))}
+              placeholder="Descricao ou motivo"
+              placeholderTextColor={colors.subtle}
+              style={[styles.input, styles.textarea]}
+              multiline
+            />
+
+            <Text style={styles.inputLabel}>Tipo</Text>
+            <View style={styles.typeRow}>
+              {ROOT_TYPE_OPTIONS.map(option => {
+                const selected = rootForm.type === option.value;
+                return (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[styles.typeOption, selected && styles.typeOptionActive]}
+                    onPress={() => setRootForm(current => ({ ...current, type: option.value }))}
+                  >
+                    <Ionicons name={option.icon} size={16} color={selected ? colors.primary : colors.muted} />
+                    <Text style={[styles.typeOptionText, selected && { color: colors.primary }]}>{option.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TextInput
+              value={rootForm.frequency}
+              onChangeText={(frequency) => setRootForm(current => ({ ...current, frequency }))}
+              placeholder="Frequencia"
+              placeholderTextColor={colors.subtle}
+              style={styles.input}
+              keyboardType="numeric"
+            />
+
+            <TouchableOpacity style={styles.saveRootBtn} onPress={handleSaveRoot} disabled={savingRoot}>
+              {savingRoot ? (
+                <ActivityIndicator color={colors.primaryText} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={colors.primaryText} />
+                  <Text style={styles.saveRootText}>{rootForm.id ? 'Salvar raiz' : 'Criar raiz'}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-        <View style={styles.progressBg}>
-          <View style={[styles.progressFill, { width: `${avgStrength}%` }]} />
-        </View>
-        <Text style={styles.progressHint}>{nextStep}</Text>
-      </View>
-
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.editBtn} onPress={() => router.push({ pathname: '/seed/edit', params: { seedId: selectedSeed.id } })}>
-          <Ionicons name="create-outline" size={16} color={colors.primaryText} />
-          <Text style={styles.editBtnText}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteBtn} onPress={confirmDeleteSeed}>
-          <Ionicons name="trash-outline" size={16} color={colors.danger} />
-          <Text style={styles.deleteBtnText}>Excluir</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.sectionLabel}>RAIZES ATIVAS</Text>
-      {roots.map(root => <RootCard key={root.id} root={root} userId={userId} onWatered={refetch} />)}
-
-      {selectedSeed.why ? (
-        <View style={styles.whyCard}>
-          <Text style={styles.whyLabel}>POR QUE ISSO IMPORTA</Text>
-          <Text style={styles.whyText}>"{selectedSeed.why}"</Text>
-        </View>
-      ) : null}
-    </ScrollView>
+      </Modal>
+    </>
   );
-}
-
-function getSeedProgress(seed: Seed) {
-  const roots = seed.roots || [];
-  if (roots.length === 0) return 0;
-  return Math.round(roots.reduce((acc, root) => acc + (root.strength || 0), 0) / roots.length);
 }
 
 function SeedPill({
@@ -183,22 +405,39 @@ function SeedPill({
   onPress: () => void;
 }) {
   const colors = theme.colors;
+  const styles = makeStyles(theme);
   const progress = getSeedProgress(seed);
+  const stage = getGardenStage(progress);
   return (
     <TouchableOpacity
       style={[
-        makeStyles(theme).seedPill,
+        styles.seedPill,
         selected && { borderColor: colors.primary, backgroundColor: colors.primarySoft },
       ]}
       onPress={onPress}
       activeOpacity={0.82}
     >
-      <View style={makeStyles(theme).seedPillHeader}>
-        <Ionicons name={selected ? 'leaf' : 'leaf-outline'} size={16} color={selected ? colors.primary : colors.muted} />
-        <Text style={[makeStyles(theme).seedPillTitle, selected && { color: colors.primary }]} numberOfLines={1}>{seed.name}</Text>
+      <View style={styles.seedPillHeader}>
+        <Ionicons name={stage.icon} size={17} color={selected ? colors.primary : colors.muted} />
+        <Text style={[styles.seedPillTitle, selected && { color: colors.primary }]} numberOfLines={1}>{seed.name}</Text>
       </View>
-      <Text style={makeStyles(theme).seedPillMeta}>{seed.status} · {progress}%</Text>
+      <View style={styles.seedPillTrack}>
+        <View style={[styles.seedPillFill, { width: `${progress}%`, backgroundColor: selected ? colors.primary : colors.success }]} />
+      </View>
+      <Text style={styles.seedPillMeta}>{stage.title} · {progress}%</Text>
     </TouchableOpacity>
+  );
+}
+
+function StatCard({ label, value, icon, theme }: { label: string; value: string; icon: keyof typeof Ionicons.glyphMap; theme: AppTheme }) {
+  const styles = makeStyles(theme);
+  const colors = theme.colors;
+  return (
+    <View style={styles.statCard}>
+      <Ionicons name={icon} size={17} color={colors.primary} />
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
   );
 }
 
@@ -217,26 +456,59 @@ function makeStyles(theme: AppTheme) {
     emptySubtitle: { fontSize: 15, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: 28 },
     plantBtn: { backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', gap: 8 },
     plantBtnText: { color: colors.primaryText, fontSize: 14, fontWeight: '800', letterSpacing: 1 },
-    actionRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-    editBtn: { flex: 1, backgroundColor: colors.primary, borderRadius: 12, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
-    editBtnText: { color: colors.primaryText, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
-    deleteBtn: { flex: 1, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.dangerSoft, borderRadius: 12, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
-    deleteBtnText: { color: colors.danger, fontSize: 12, fontWeight: '800', letterSpacing: 1.4 },
-    progressCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border },
     seedList: { gap: 10, paddingBottom: 14 },
-    seedPill: { width: 178, minHeight: 78, backgroundColor: colors.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between' },
+    seedPill: { width: 188, minHeight: 88, backgroundColor: colors.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: colors.border, justifyContent: 'space-between' },
     seedPillHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
     seedPillTitle: { flex: 1, fontSize: 13, color: colors.text, fontWeight: '800' },
-    seedPillMeta: { fontSize: 11, color: colors.muted, textTransform: 'capitalize' },
+    seedPillTrack: { height: 4, backgroundColor: colors.backgroundAlt, borderRadius: 99, overflow: 'hidden', marginBottom: 7 },
+    seedPillFill: { height: 4, borderRadius: 99 },
+    seedPillMeta: { fontSize: 11, color: colors.muted },
+    stageCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border },
+    stageTop: { flexDirection: 'row', gap: 14, marginBottom: 14, alignItems: 'center' },
+    stageIcon: { width: 82, height: 82, borderRadius: 18, backgroundColor: colors.successSoft, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    stageCopy: { flex: 1 },
+    stageKicker: { fontSize: 9, letterSpacing: 2.6, color: colors.primary, fontWeight: '900', marginBottom: 5 },
+    stageTitle: { fontSize: 22, color: colors.text, fontWeight: '900', lineHeight: 27, marginBottom: 4 },
+    stageSubtitle: { fontSize: 13, color: colors.muted, lineHeight: 19 },
     progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-    progressLabel: { fontSize: 9, letterSpacing: 3, color: colors.muted, fontWeight: '800' },
-    progressPct: { fontSize: 15, color: colors.success, fontWeight: '800' },
-    progressBg: { height: 5, backgroundColor: colors.backgroundAlt, borderRadius: 100 },
-    progressFill: { height: 5, backgroundColor: colors.success, borderRadius: 100 },
+    progressLabel: { fontSize: 10, letterSpacing: 2, color: colors.primary, fontWeight: '900' },
+    progressPct: { fontSize: 15, color: colors.success, fontWeight: '900' },
+    progressBg: { height: 7, backgroundColor: colors.backgroundAlt, borderRadius: 100, overflow: 'hidden' },
+    progressFill: { height: 7, backgroundColor: colors.success, borderRadius: 100 },
     progressHint: { fontSize: 13, color: colors.muted, marginTop: 10, lineHeight: 19 },
-    sectionLabel: { fontSize: 9, letterSpacing: 3, color: colors.muted, fontWeight: '800', marginBottom: 12 },
+    statsGrid: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+    statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 12, minHeight: 82 },
+    statValue: { fontSize: 19, color: colors.text, fontWeight: '900', marginTop: 7 },
+    statLabel: { fontSize: 10, color: colors.muted, fontWeight: '900', textTransform: 'uppercase', marginTop: 2 },
+    actionRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+    editBtn: { flex: 1, backgroundColor: colors.primary, borderRadius: 12, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+    editBtnText: { color: colors.primaryText, fontSize: 12, fontWeight: '800', letterSpacing: 1.1 },
+    deleteBtn: { flex: 1, borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.dangerSoft, borderRadius: 12, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+    deleteBtnText: { color: colors.danger, fontSize: 12, fontWeight: '800', letterSpacing: 1.1 },
+    rootsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 12 },
+    sectionLabel: { fontSize: 9, letterSpacing: 3, color: colors.muted, fontWeight: '800', marginBottom: 5 },
+    rootsHint: { fontSize: 12, color: colors.subtle, lineHeight: 17, maxWidth: 260 },
+    addRootBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+    emptyRootsCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 18, alignItems: 'center', marginBottom: 16 },
+    emptyRootsTitle: { fontSize: 16, color: colors.text, fontWeight: '900', marginTop: 10, marginBottom: 5 },
+    emptyRootsText: { fontSize: 13, color: colors.muted, textAlign: 'center', lineHeight: 19 },
     whyCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 20, marginTop: 8, marginBottom: 24, borderWidth: 1, borderColor: colors.border },
     whyLabel: { fontSize: 9, letterSpacing: 3, color: colors.primary, fontWeight: '800', marginBottom: 10 },
     whyText: { fontSize: 16, color: colors.text, fontStyle: 'italic', lineHeight: 24 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', padding: 20 },
+    modalCard: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 18 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14 },
+    modalKicker: { fontSize: 9, color: colors.primary, fontWeight: '900', letterSpacing: 2.5, marginBottom: 5 },
+    modalTitle: { fontSize: 20, color: colors.text, fontWeight: '900' },
+    modalClose: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    input: { borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundAlt, borderRadius: 10, paddingHorizontal: 13, minHeight: 46, color: colors.text, fontSize: 14, marginBottom: 10 },
+    textarea: { minHeight: 76, paddingTop: 12, textAlignVertical: 'top' },
+    inputLabel: { fontSize: 11, color: colors.muted, fontWeight: '900', textTransform: 'uppercase', marginBottom: 8 },
+    typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
+    typeOption: { flexGrow: 1, minWidth: 98, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundAlt, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 10, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
+    typeOptionActive: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+    typeOptionText: { color: colors.muted, fontSize: 12, fontWeight: '900' },
+    saveRootBtn: { backgroundColor: colors.primary, borderRadius: 10, minHeight: 48, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8, marginTop: 4 },
+    saveRootText: { color: colors.primaryText, fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
   });
 }

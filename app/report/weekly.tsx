@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { getCurrentUser } from '@/services/authService';
 import { generateWeeklyReport, type WeeklyReportData } from '@/services/reportService';
+import { saveWeeklyIntention } from '@/services/growthService';
 import { useTheme, type AppTheme } from '@/lib/theme';
 
 export default function WeeklyReport() {
@@ -12,6 +13,8 @@ export default function WeeklyReport() {
   const colors = theme.colors;
   const [report, setReport] = useState<WeeklyReportData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [intention, setIntention] = useState('');
+  const [savingIntention, setSavingIntention] = useState(false);
 
   async function handleGenerate() {
     const user = await getCurrentUser();
@@ -20,11 +23,27 @@ export default function WeeklyReport() {
     try {
       const result = await generateWeeklyReport(user.id);
       setReport(result);
+      setIntention(result.intention);
     } catch (error) {
       console.error('Failed to generate weekly report', error);
       Alert.alert('Erro', 'Nao foi possivel gerar o relatorio.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSaveIntention() {
+    const user = await getCurrentUser();
+    if (!user) return;
+    setSavingIntention(true);
+    try {
+      await saveWeeklyIntention(user.id, intention);
+      setReport(current => current ? { ...current, intention } : current);
+    } catch (error) {
+      console.error('Failed to save weekly intention', error);
+      Alert.alert('Erro', 'Nao foi possivel salvar a intencao.');
+    } finally {
+      setSavingIntention(false);
     }
   }
 
@@ -84,6 +103,23 @@ export default function WeeklyReport() {
             </View>
           </View>
 
+          <View style={styles.levelCard}>
+            <View style={styles.levelHeader}>
+              <View style={styles.levelIcon}>
+                <Ionicons name="flower-outline" size={22} color={colors.primary} />
+              </View>
+              <View style={styles.levelCopy}>
+                <Text style={styles.levelKicker}>Nivel {report.consciousness.level}</Text>
+                <Text style={styles.levelName}>{report.consciousness.name}</Text>
+              </View>
+            </View>
+            <Text style={styles.levelDescription}>{report.consciousness.description}</Text>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${report.consciousness.progress}%`, backgroundColor: colors.accent }]} />
+            </View>
+            <Text style={styles.levelNext}>Proximo cultivo: {report.consciousness.nextLabel}</Text>
+          </View>
+
           <View style={styles.metricsRow}>
             <MetricCard
               icon="heart-outline"
@@ -105,6 +141,48 @@ export default function WeeklyReport() {
           <InsightCard title="Padrao percebido" icon="search-outline" text={report.pattern} theme={theme} />
           <InsightCard title="Vitoria da semana" icon="trophy-outline" text={report.win} theme={theme} tone="success" />
           <InsightCard title="Proximo passo" icon="walk-outline" text={report.nextAction} theme={theme} tone="primary" />
+
+          <View style={styles.intentionCard}>
+            <View style={styles.insightHeader}>
+              <Ionicons name="flag-outline" size={18} color={colors.accent} />
+              <Text style={[styles.insightTitle, { color: colors.accent }]}>Intencao da proxima semana</Text>
+            </View>
+            <TextInput
+              value={intention}
+              onChangeText={setIntention}
+              placeholder="Ex: agir com calma, terminar uma raiz, cuidar do corpo..."
+              placeholderTextColor={colors.subtle}
+              style={styles.intentionInput}
+              multiline
+            />
+            <TouchableOpacity style={styles.saveIntentionBtn} onPress={handleSaveIntention} disabled={savingIntention}>
+              {savingIntention ? (
+                <ActivityIndicator color={colors.primaryText} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={16} color={colors.primaryText} />
+                  <Text style={styles.saveIntentionText}>Salvar intencao</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {report.achievements.length ? (
+            <View style={styles.achievementsCard}>
+              <Text style={styles.sectionTitle}>Conquistas desbloqueadas</Text>
+              {report.achievements.map(achievement => (
+                <View key={achievement.id} style={styles.achievementRow}>
+                  <View style={styles.achievementIcon}>
+                    <Ionicons name="ribbon-outline" size={18} color={colors.success} />
+                  </View>
+                  <View style={styles.achievementCopy}>
+                    <Text style={styles.achievementTitle}>{achievement.title}</Text>
+                    <Text style={styles.achievementMessage}>{achievement.message}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {report.seed?.roots.length ? (
             <View style={styles.rootsCard}>
@@ -230,6 +308,14 @@ function makeStyles(theme: AppTheme) {
     daysLabel: { fontSize: 10, color: colors.muted, fontWeight: '800' },
     track: { height: 7, backgroundColor: colors.backgroundAlt, borderRadius: 100, overflow: 'hidden' },
     fill: { height: 7, backgroundColor: colors.primary, borderRadius: 100 },
+    levelCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 12 },
+    levelHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+    levelIcon: { width: 44, height: 44, borderRadius: 10, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+    levelCopy: { flex: 1 },
+    levelKicker: { fontSize: 10, color: colors.muted, fontWeight: '900', textTransform: 'uppercase', marginBottom: 2 },
+    levelName: { fontSize: 19, color: colors.text, fontWeight: '900' },
+    levelDescription: { fontSize: 14, color: colors.muted, lineHeight: 21, marginBottom: 12 },
+    levelNext: { fontSize: 12, color: colors.accent, fontWeight: '800', marginTop: 9, lineHeight: 18 },
     metricsRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
     metricCard: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, minHeight: 130 },
     metricLabel: { fontSize: 10, color: colors.muted, fontWeight: '900', marginTop: 10, marginBottom: 8, textTransform: 'uppercase' },
@@ -239,6 +325,16 @@ function makeStyles(theme: AppTheme) {
     insightHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 },
     insightTitle: { fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
     insightText: { fontSize: 14, color: colors.text, lineHeight: 22 },
+    intentionCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
+    intentionInput: { minHeight: 72, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundAlt, color: colors.text, padding: 12, fontSize: 14, lineHeight: 20, textAlignVertical: 'top', marginBottom: 12 },
+    saveIntentionBtn: { backgroundColor: colors.primary, borderRadius: 10, padding: 13, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+    saveIntentionText: { color: colors.primaryText, fontSize: 13, fontWeight: '900' },
+    achievementsCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 12 },
+    achievementRow: { flexDirection: 'row', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border },
+    achievementIcon: { width: 36, height: 36, borderRadius: 9, backgroundColor: colors.successSoft, alignItems: 'center', justifyContent: 'center' },
+    achievementCopy: { flex: 1 },
+    achievementTitle: { fontSize: 14, color: colors.text, fontWeight: '900', marginBottom: 3 },
+    achievementMessage: { fontSize: 12, color: colors.muted, lineHeight: 18 },
     rootsCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginTop: 2, marginBottom: 12 },
     sectionTitle: { fontSize: 13, color: colors.primary, fontWeight: '900', marginBottom: 12, textTransform: 'uppercase' },
     rootRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: colors.border },

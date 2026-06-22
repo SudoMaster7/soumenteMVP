@@ -9,9 +9,19 @@ interface Props {
   root: Root;
   userId: string;
   onWatered: () => void;
+  onEdit?: (root: Root) => void;
+  onDelete?: (root: Root) => void;
 }
 
-export function RootCard({ root, userId, onWatered }: Props) {
+function getRootRank(strength: number) {
+  if (strength >= 90) return { label: 'Lendaria', icon: 'diamond-outline' as const };
+  if (strength >= 70) return { label: 'Forte', icon: 'shield-checkmark-outline' as const };
+  if (strength >= 40) return { label: 'Crescendo', icon: 'trending-up-outline' as const };
+  if (strength > 0) return { label: 'Broto', icon: 'leaf-outline' as const };
+  return { label: 'Adormecida', icon: 'ellipse-outline' as const };
+}
+
+export function RootCard({ root, userId, onWatered, onEdit, onDelete }: Props) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
@@ -37,15 +47,34 @@ export function RootCard({ root, userId, onWatered }: Props) {
   }
 
   const strengthPct = root.strength || 0;
+  const rank = getRootRank(strengthPct);
 
   return (
     <View style={styles.card}>
       <View style={[styles.sideBar, watered && { backgroundColor: colors.success }]} />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.name}>{root.name}</Text>
-          <View style={[styles.typeBadge, root.type === 'weekly' && styles.typeBadgeWeekly]}>
-            <Text style={styles.typeText}>{root.type === 'daily' ? 'DIARIA' : 'SEMANAL'}</Text>
+          <View style={styles.nameBlock}>
+            <Text style={styles.name}>{root.name}</Text>
+            <View style={styles.rankRow}>
+              <Ionicons name={rank.icon} size={13} color={colors.primary} />
+              <Text style={styles.rankText}>{rank.label}</Text>
+            </View>
+          </View>
+          <View style={styles.headerActions}>
+            <View style={[styles.typeBadge, root.type === 'weekly' && styles.typeBadgeWeekly]}>
+              <Text style={styles.typeText}>{root.type === 'daily' ? 'DIARIA' : root.type === 'weekly' ? 'SEMANAL' : 'MARCO'}</Text>
+            </View>
+            {onEdit ? (
+              <TouchableOpacity style={styles.iconAction} onPress={() => onEdit(root)} accessibilityLabel={`Editar raiz ${root.name}`}>
+                <Ionicons name="create-outline" size={15} color={colors.primary} />
+              </TouchableOpacity>
+            ) : null}
+            {onDelete ? (
+              <TouchableOpacity style={styles.iconAction} onPress={() => onDelete(root)} accessibilityLabel={`Excluir raiz ${root.name}`}>
+                <Ionicons name="trash-outline" size={15} color={colors.danger} />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
         {root.description ? <Text style={styles.description}>{root.description}</Text> : null}
@@ -89,7 +118,12 @@ function makeStyles(theme: AppTheme) {
     sideBar: { width: 4, backgroundColor: colors.primary },
     content: { flex: 1, padding: 16 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 10 },
-    name: { fontSize: 15, fontWeight: '800', color: colors.text, flex: 1 },
+    nameBlock: { flex: 1, minWidth: 0 },
+    name: { fontSize: 15, fontWeight: '800', color: colors.text },
+    rankRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+    rankText: { fontSize: 10, color: colors.primary, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    iconAction: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.backgroundAlt, alignItems: 'center', justifyContent: 'center' },
     typeBadge: { backgroundColor: colors.primarySoft, borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: colors.border },
     typeBadgeWeekly: { backgroundColor: colors.accentSoft },
     typeText: { fontSize: 7, letterSpacing: 2, color: colors.primary, fontWeight: '800' },

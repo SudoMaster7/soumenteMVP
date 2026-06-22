@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getTodayEntry, getDiaryHistory, getStreak } from '@/services/diaryService';
 import { getCurrentUser } from '@/services/authService';
 import type { DiaryEntry } from '@/types';
@@ -9,7 +9,7 @@ export function useDiary() {
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  async function fetchDiary() {
+  const fetchDiary = useCallback(async () => {
     try {
       setLoading(true);
       const user = await getCurrentUser();
@@ -25,11 +25,11 @@ export function useDiary() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchDiary();
-  }, []);
+  }, [fetchDiary]);
 
   return { todayEntry, history, streak, loading, refetch: fetchDiary };
 }

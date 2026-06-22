@@ -2,7 +2,7 @@ import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, ActivityIndicator,
 } from 'react-native';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
@@ -11,6 +11,8 @@ import { useDiary } from '@/hooks/useDiary';
 import { EMOTIONS } from '@/constants/emotions';
 import { useSuperEuStore } from '@/stores/superEuStore';
 import { fetchDailyOracle } from '@/services/oracleService';
+import { getGrowthProfile, getWeeklyIntention, type GrowthProfile } from '@/services/growthService';
+import { getCurrentUser } from '@/services/authService';
 import { fmtBRL } from '@/constants/supereu';
 import { useTheme, type AppTheme } from '@/lib/theme';
 
@@ -34,6 +36,8 @@ export default function Home() {
   const { profile } = useAuth();
   const { seed, loading: seedLoading, refetch: refetchSeed } = useSeed();
   const { todayEntry, streak, loading: diaryLoading, refetch: refetchDiary } = useDiary();
+  const [growth, setGrowth] = useState<GrowthProfile | null>(null);
+  const [weeklyIntention, setWeeklyIntention] = useState('');
   const {
     oracle, oracleDateKey, setOracle,
     habits, goals, purchases, finance, diary,
@@ -50,7 +54,19 @@ export default function Home() {
   useFocusEffect(useCallback(() => {
     refetchSeed();
     refetchDiary();
-  }, []));
+    getCurrentUser().then(user => {
+      if (!user) return;
+      Promise.all([
+        getGrowthProfile(user.id),
+        getWeeklyIntention(user.id),
+      ]).then(([profile, intention]) => {
+        setGrowth(profile);
+        setWeeklyIntention(intention);
+      }).catch((error) => {
+        console.warn('Failed to load growth profile', error);
+      });
+    });
+  }, [refetchDiary, refetchSeed]));
 
   const loading = seedLoading || diaryLoading;
   const emotion = EMOTIONS.find(e => e.id === todayEntry?.emotion_primary);
@@ -126,6 +142,32 @@ export default function Home() {
           <Text style={styles.aiCta}>Registrar agora</Text>
         </TouchableOpacity>
       </View>
+
+      {growth ? (
+        <TouchableOpacity style={styles.growthCard} onPress={() => router.push('/report/weekly')} activeOpacity={0.86}>
+          <View style={styles.growthHeader}>
+            <View style={styles.growthIcon}>
+              <Ionicons name="flower-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.growthCopy}>
+              <Text style={styles.growthKicker}>Nivel {growth.level.level}</Text>
+              <Text style={styles.growthTitle}>{growth.level.name}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          </View>
+          <Text style={styles.growthDescription}>{growth.level.description}</Text>
+          <View style={styles.track}>
+            <View style={[styles.fill, { width: `${growth.level.progress}%`, backgroundColor: colors.accent }]} />
+          </View>
+          {weeklyIntention ? (
+            <Text style={styles.intentionLine}>Intencao da semana: {weeklyIntention}</Text>
+          ) : growth.nextAchievement ? (
+            <Text style={styles.intentionLine}>Proxima conquista: {growth.nextAchievement.title}</Text>
+          ) : (
+            <Text style={styles.intentionLine}>Seu jardim ja tem memoria. Continue cultivando.</Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
 
       {seed ? (
         <>
@@ -215,6 +257,14 @@ function makeStyles(theme: AppTheme) {
     aiTag: { fontSize: 8, letterSpacing: 3, color: colors.primary, fontWeight: 'bold' },
     aiMessage: { fontSize: 16, color: colors.text, fontStyle: 'italic', lineHeight: 24, marginBottom: 12 },
     aiCta: { fontSize: 11, color: colors.primary, letterSpacing: 2, fontWeight: '700' },
+    growthCard: { backgroundColor: colors.surface, borderRadius: 8, padding: 16, marginBottom: 26, borderWidth: 1, borderColor: colors.border },
+    growthHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+    growthIcon: { width: 42, height: 42, borderRadius: 10, backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    growthCopy: { flex: 1 },
+    growthKicker: { fontSize: 9, color: colors.primary, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 2 },
+    growthTitle: { fontSize: 18, color: colors.text, fontWeight: '900' },
+    growthDescription: { fontSize: 13, color: colors.muted, lineHeight: 20, marginBottom: 12 },
+    intentionLine: { fontSize: 12, color: colors.accent, lineHeight: 18, fontWeight: '800', marginTop: 10 },
     sectionLabel: { fontSize: 9, letterSpacing: 3, color: colors.subtle, fontWeight: 'bold', marginBottom: 10 },
     seedCard: { backgroundColor: colors.surface, borderRadius: 8, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24, borderWidth: 1, borderColor: colors.border },
     seedIconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft },

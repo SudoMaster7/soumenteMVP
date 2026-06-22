@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { isDevUser } from '@/lib/devAuth';
 import { getWeekEntries } from './diaryService';
 import { getActiveSeed } from './seedService';
+import { getGrowthProfile, getWeeklyIntention, type Achievement, type ConsciousnessLevel } from './growthService';
 import type { DiaryEntry, EmotionType, Root } from '@/types';
 
 export type WeeklyReportData = {
@@ -30,6 +31,9 @@ export type WeeklyReportData = {
   win: string;
   nextAction: string;
   encouragement: string;
+  intention: string;
+  consciousness: ConsciousnessLevel;
+  achievements: Achievement[];
 };
 
 const EMOTION_LABELS: Record<EmotionType | string, string> = {
@@ -106,6 +110,10 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
     getWeekEntries(userId),
     getActiveSeed(userId),
   ]);
+  const [growth, intention] = await Promise.all([
+    getGrowthProfile(userId),
+    getWeeklyIntention(userId),
+  ]);
 
   const weekStart = entries[0]?.entry_date;
   const weekEnd = entries[entries.length - 1]?.entry_date;
@@ -138,6 +146,9 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
         win: 'Abrir esta tela ja mostra intencao de acompanhar seu processo.',
         nextAction: 'Hoje, registre uma emocao e uma frase curta sobre o que ela esta tentando mostrar.',
         encouragement: 'Nao precisa comecar grande. Precisa comecar visivel.',
+        intention,
+        consciousness: growth.level,
+        achievements: growth.unlockedAchievements,
       }
     : {
         isEmpty: false,
@@ -165,6 +176,9 @@ export async function generateWeeklyReport(userId: string): Promise<WeeklyReport
         encouragement: registeredDays >= 5
           ? 'Voce nao precisa recomecar. Precisa proteger o ritmo que ja apareceu.'
           : 'A proxima semana nao pede culpa. Pede um ritual pequeno repetido com honestidade.',
+        intention,
+        consciousness: growth.level,
+        achievements: growth.unlockedAchievements,
       };
 
   if (!isDevUser(userId)) {

@@ -12,6 +12,7 @@ interface Props {
 const ICONS: Record<SuperEuModule, keyof typeof Ionicons.glyphMap> = {
   oracle: 'compass-outline',
   mentor: 'chatbubbles-outline',
+  padroes: 'git-network-outline',
   rituais: 'flame-outline',
   objetivos: 'flag-outline',
   plano: 'map-outline',

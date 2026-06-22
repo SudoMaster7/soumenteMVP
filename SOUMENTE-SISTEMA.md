@@ -37,6 +37,8 @@ A Home e o painel inicial do usuario. Ela resume o estado atual do processo e mo
 - progresso medio dos objetivos;
 - fluxo financeiro atual;
 - reflexao do dia;
+- nivel de consciencia atual;
+- proxima conquista ou intencao semanal;
 - acesso rapido para semente, diario, jardim e relatorio semanal.
 
 Ela ajuda o usuario a entender rapidamente onde esta e o que merece atencao naquele momento.
@@ -79,13 +81,19 @@ Na tela, o usuario consegue:
 
 - ver todas as sementes criadas;
 - selecionar uma semente;
-- visualizar status da semente;
+- visualizar status e estagio visual da semente;
 - acompanhar a forca das raizes;
+- acompanhar XP, regas e raizes fortes;
 - regar raizes;
+- criar novas raizes;
+- editar raizes existentes;
+- excluir raizes;
 - editar ou excluir sementes;
 - ler o motivo pelo qual aquela semente importa.
 
-O Jardim ajuda o usuario a perceber que progresso e cultivo. Cada pequena acao fortalece as raizes.
+O Jardim usa uma camada gamificada leve. O icone e o estagio visual mudam conforme a semente evolui: solo preparado, broto, crescimento visivel, arvore forte e jardim lendario. Isso ajuda o usuario a sentir que cada pequena acao realmente move algo.
+
+O Jardim ajuda o usuario a perceber que progresso e cultivo. Cada pequena acao fortalece as raizes e aumenta a sensacao de continuidade.
 
 ### 6. Raizes
 
@@ -98,6 +106,18 @@ Elas funcionam como habitos ou tarefas recorrentes que sustentam o objetivo prin
 - revisao semanal.
 
 Quando o usuario rega uma raiz, a forca dela aumenta. Isso torna o progresso visivel e reforca a sensacao de continuidade.
+
+As raizes tambem podem ser personalizadas. O usuario pode criar, editar ou excluir raizes de acordo com o objetivo que esta cultivando.
+
+Cada raiz possui:
+
+- nome;
+- descricao;
+- tipo: diaria, semanal ou marco;
+- frequencia;
+- forca;
+- quantidade de regas;
+- nivel visual, como adormecida, broto, crescendo, forte ou lendaria.
 
 ### 7. Super Eu
 
@@ -138,6 +158,32 @@ Ele ajuda respondendo perguntas como:
 - "Onde estou gastando energia demais?"
 
 O objetivo do Mentor e transformar dados pessoais em orientacao pratica.
+
+#### Padroes
+
+A aba Padroes funciona como um mapa de descobertas sobre o comportamento do usuario.
+
+Ela cruza dados locais como:
+
+- registros emocionais;
+- presenca nos ultimos 30 dias;
+- sequencia atual;
+- sementes criadas;
+- raizes fortes;
+- raizes em risco.
+
+Quando ainda existem poucos dados, o sistema nao finge ter certeza. Ele mostra sinais iniciais e explica o que falta cultivar para revelar padroes mais confiaveis.
+
+Quando ha dados suficientes, o mapa apresenta descobertas como:
+
+- emocao mais recorrente;
+- dia da semana com mais presenca;
+- raiz que mais sustenta o usuario;
+- raiz que precisa de cuidado;
+- semente que esta recebendo menos energia;
+- risco de perda de ritmo.
+
+Essa aba da ao usuario a sensacao de que o sistema esta aprendendo com ele. O objetivo nao e criar um relatorio tecnico, mas revelar pequenas verdades uteis sobre rotina, energia e continuidade.
 
 #### Rituais
 
@@ -226,13 +272,62 @@ Ele mostra:
 - progresso das raizes;
 - padrao percebido;
 - vitoria da semana;
-- proximo passo recomendado.
+- proximo passo recomendado;
+- nivel de consciencia atual;
+- progresso para o proximo nivel;
+- intencao da proxima semana;
+- conquistas desbloqueadas.
 
 Essa sessao existe para dar gas ao usuario. Ela nao serve apenas para avaliar desempenho, mas para reforcar continuidade e mostrar que pequenos movimentos contam.
 
 Mesmo quando a semana foi fraca, o relatorio evita culpa e aponta uma acao simples para recomecar.
 
-### 9. Perfil
+O usuario tambem pode salvar uma intencao para a semana seguinte. Essa intencao volta para a Home como lembrete de direcao.
+
+### 9. Niveis de consciencia
+
+O sistema possui uma progressao simbolica chamada niveis de consciencia.
+
+Ela representa a evolucao global do usuario como cultivador, nao apenas o progresso de uma semente especifica.
+
+Os niveis atuais sao:
+
+1. Semente;
+2. Broto;
+3. Raiz Forte;
+4. Arvore Jovem;
+5. Arvore Madura;
+6. Floresta;
+7. Guardiao da Floresta.
+
+O nivel considera sinais como:
+
+- quantidade de registros no diario;
+- sequencia de dias;
+- sementes criadas;
+- raizes fortes;
+- tempo de cultivo;
+- consistencia acumulada.
+
+Esse nivel aparece na Home e no Relatorio Semanal. Ele ajuda o usuario a sentir progresso mesmo quando uma meta especifica ainda esta longe do resultado final.
+
+### 10. Conquistas
+
+As conquistas reconhecem comportamentos importantes sem transformar o app em um jogo vazio.
+
+Elas aparecem como reconhecimento de identidade: o sistema celebra quando o usuario cria uma semente, mantem sequencia, fortalece raizes ou registra muitos sinais internos.
+
+Exemplos de conquistas:
+
+- Primeiro Broto: criar a primeira semente;
+- Sete Dias de Cultivo: manter sete dias de registro;
+- Raiz Profunda: fortalecer uma raiz importante;
+- Guardiao do Jardim: manter sementes ativas por bastante tempo;
+- Espelho Fiel: acumular muitos registros emocionais.
+
+As conquistas ajudam o usuario a perceber que esta construindo uma historia, nao apenas preenchendo telas.
+
+### 11. Perfil
 
 A area de Perfil concentra configuracoes do usuario, acesso ao relatorio semanal e opcoes gerais da conta.
 
@@ -269,6 +364,9 @@ Muitas vezes o usuario sente que nao esta evoluindo porque olha apenas para o re
 - rituais feitos;
 - objetivos avancados;
 - padroes percebidos.
+- niveis conquistados;
+- conquistas desbloqueadas;
+- intencoes semanais salvas.
 
 Isso aumenta a sensacao de continuidade.
 
@@ -280,6 +378,9 @@ O sistema nao mostra apenas dados. Ele tenta converter dados em acao:
 - microacao;
 - insight de objetivo;
 - proximo passo no relatorio;
+- padroes de comportamento;
+- proxima conquista;
+- nivel de consciencia;
 - sugestoes do Mentor.
 
 Isso reduz a paralisia e ajuda o usuario a agir.
@@ -304,10 +405,11 @@ A IA pode atuar em:
 - Oraculo Diario;
 - Mentor conversacional;
 - insights de objetivos;
+- Mapa de Padroes;
 - reflexoes do Grimorio;
 - relatorios semanais mais profundos.
 
-No momento, o sistema pode funcionar com respostas mockadas para validar a experiencia sem depender de API externa. Futuramente, a IA pode usar modelos como Qwen ou outro modelo compativel para gerar respostas mais personalizadas.
+No momento, o sistema pode funcionar com respostas mockadas e leituras locais para validar a experiencia sem depender de API externa. Futuramente, a IA pode usar modelos como Qwen ou outro modelo compativel para gerar respostas mais personalizadas.
 
 O ponto principal nao e apenas "ter um chatbot", mas usar os dados do proprio usuario para gerar orientacao util, contextual e acionavel.
 
@@ -321,6 +423,9 @@ Ele responde perguntas como:
 - O que eu estou cultivando?
 - Quais pequenas acoes estao fortalecendo minha semente?
 - Onde estou perdendo ritmo?
+- Que padroes meus dados estao revelando?
+- Qual conquista estou perto de desbloquear?
+- Em que nivel de cultivo eu estou?
 - O que posso fazer hoje para continuar?
 
 ## Visao de produto
@@ -333,6 +438,9 @@ Sua forca esta em combinar:
 - metas simbolicas;
 - acompanhamento visual;
 - rituais semanais;
+- niveis de consciencia;
+- conquistas;
+- mapa de padroes;
 - planejamento pessoal;
 - relatorios motivadores;
 - IA contextual.

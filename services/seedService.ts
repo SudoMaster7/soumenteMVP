@@ -477,3 +477,130 @@ export async function wasWateredToday(rootId: string, userId: string): Promise<b
     .limit(1);
   return (data?.length || 0) > 0;
 }
+
+export async function createRoot(
+  seedId: string,
+  userId: string,
+  root: Pick<Root, 'name' | 'description' | 'type' | 'frequency'>
+): Promise<Root> {
+  if (isDevUser(userId)) {
+    const now = new Date().toISOString();
+    const newRoot: Root = {
+      id: newId('root'),
+      seed_id: seedId,
+      user_id: userId,
+      name: root.name,
+      description: root.description,
+      type: root.type,
+      frequency: root.frequency,
+      strength: 0,
+      completed_count: 0,
+      created_at: now,
+    };
+    const seeds = await readLocalSeeds();
+    const next = seeds.map(seed => (
+      seed.id === seedId && seed.user_id === userId
+        ? { ...seed, roots: [...(seed.roots || []), newRoot] }
+        : seed
+    ));
+    await writeLocalSeeds(next);
+    return newRoot;
+  }
+
+  const { data, error } = await supabase
+    .from('roots')
+    .insert({
+      ...root,
+      seed_id: seedId,
+      user_id: userId,
+      strength: 0,
+      completed_count: 0,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateRoot(
+  rootId: string,
+  userId: string,
+  patch: Partial<Pick<Root, 'name' | 'description' | 'type' | 'frequency'>>
+): Promise<Root> {
+  if (isDevUser(userId)) {
+    const seeds = await readLocalSeeds();
+    let updated: Root | null = null;
+    const next = seeds.map(seed => {
+      const roots = seed.roots || [];
+      if (!roots.some(root => root.id === rootId && root.user_id === userId)) return seed;
+
+      const updatedRoots = roots.map(root => {
+        if (root.id !== rootId || root.user_id !== userId) return root;
+        updated = { ...root, ...patch };
+        return updated;
+      });
+
+      return updateLocalSeedStatus({ ...seed, roots: updatedRoots });
+    });
+    await writeLocalSeeds(next);
+    if (!updated) throw new Error('Root not found');
+    return updated;
+  }
+
+  const { data, error } = await supabase
+    .from('roots')
+    .update(patch)
+    .eq('id', rootId)
+    .eq('user_id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteRoot(rootId: string, userId: string): Promise<void> {
+  if (isDevUser(userId)) {
+    const seeds = await readLocalSeeds();
+    const next = seeds.map(seed => {
+      const roots = seed.roots || [];
+      if (!roots.some(root => root.id === rootId && root.user_id === userId)) return seed;
+      return updateLocalSeedStatus({
+        ...seed,
+        roots: roots.filter(root => root.id !== rootId || root.user_id !== userId),
+      });
+    });
+    await writeLocalSeeds(next);
+
+    const completions = await readLocalCompletions();
+    await writeLocalCompletions(completions.filter(completion => completion.root_id !== rootId || completion.user_id !== userId));
+    return;
+  }
+
+  const { error: completionsError } = await supabase
+    .from('root_completions')
+    .delete()
+    .eq('root_id', rootId)
+    .eq('user_id', userId);
+
+  if (completionsError) throw completionsError;
+
+  const { data: root, error: rootSelectError } = await supabase
+    .from('roots')
+    .select('seed_id')
+    .eq('id', rootId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (rootSelectError) throw rootSelectError;
+
+  const { error } = await supabase
+    .from('roots')
+    .delete()
+    .eq('id', rootId)
+    .eq('user_id', userId);
+
+  if (error) throw error;
+  if (root?.seed_id) await updateSeedStatus(root.seed_id);
+}

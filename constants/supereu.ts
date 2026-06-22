@@ -35,6 +35,7 @@ export const SE_FONTS = {
 export const SE_TABS: { id: SuperEuModule; label: string; symbol: string }[] = [
   { id: 'oracle',    label: 'Oracle',    symbol: '◈' },
   { id: 'mentor',    label: 'Mentor',    symbol: 'AI' },
+  { id: 'padroes',   label: 'Padrões',   symbol: 'MAP' },
   { id: 'rituais',   label: 'Rituais',   symbol: '🔥' },
   { id: 'objetivos', label: 'Objetivos', symbol: '◇' },
   { id: 'plano',     label: 'Plano',     symbol: '△' },

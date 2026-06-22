@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getActiveSeed, getSeeds } from '@/services/seedService';
 import { getCurrentUser } from '@/services/authService';
 import type { Seed } from '@/types';
@@ -9,7 +9,7 @@ export function useSeed() {
   const [userId, setUserId] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
-  async function fetchSeed() {
+  const fetchSeed = useCallback(async () => {
     try {
       setLoading(true);
       const user = await getCurrentUser();
@@ -24,11 +24,11 @@ export function useSeed() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchSeed();
-  }, []);
+  }, [fetchSeed]);
 
   return { seed, seeds, userId, loading, refetch: fetchSeed };
 }

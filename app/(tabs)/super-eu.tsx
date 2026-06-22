@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import SuperEuTabBar from '@/components/super-eu/SuperEuTabBar';
 import OracleModule from '@/components/super-eu/OracleModule';
 import MentorModule from '@/components/super-eu/MentorModule';
+import PadroesModule from '@/components/super-eu/PadroesModule';
 import RituaisModule from '@/components/super-eu/RituaisModule';
 import ObjetivosModule from '@/components/super-eu/ObjetivosModule';
 import PlanoModule from '@/components/super-eu/PlanoModule';
@@ -15,6 +16,7 @@ import type { SuperEuModule } from '@/types/supereu';
 const MODULE_MAP: Record<SuperEuModule, React.ComponentType> = {
   oracle: OracleModule,
   mentor: MentorModule,
+  padroes: PadroesModule,
   rituais: RituaisModule,
   objetivos: ObjetivosModule,
   plano: PlanoModule,
