@@ -1,24 +1,29 @@
-import {
+﻿import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, Alert, ActivityIndicator,
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { getCurrentUser } from '@/services/authService';
 import { createSeed } from '@/services/seedService';
+import { useTheme, type AppTheme } from '@/lib/theme';
 import type { SeedType } from '@/types';
 
-const SEED_TYPES = [
-  { id: 'dream',        label: 'Sonho',           icon: '✨' },
-  { id: 'career',       label: 'Carreira',         icon: '🚀' },
-  { id: 'health',       label: 'Saúde',            icon: '💪' },
-  { id: 'relationship', label: 'Relacionamentos',  icon: '❤️' },
-  { id: 'finance',      label: 'Finanças',         icon: '💰' },
-  { id: 'custom',       label: 'Outro',            icon: '🌱' },
-] as const;
+const SEED_TYPES: { id: SeedType; label: string; icon: keyof typeof Ionicons.glyphMap; hint: string }[] = [
+  { id: 'dream', label: 'Sonho', icon: 'sparkles-outline', hint: 'Algo que te chama' },
+  { id: 'career', label: 'Carreira', icon: 'briefcase-outline', hint: 'Trabalho e direcao' },
+  { id: 'health', label: 'Saude', icon: 'fitness-outline', hint: 'Corpo e energia' },
+  { id: 'relationship', label: 'Relacoes', icon: 'heart-outline', hint: 'Vinculos e cuidado' },
+  { id: 'finance', label: 'Financas', icon: 'wallet-outline', hint: 'Dinheiro e escolhas' },
+  { id: 'custom', label: 'Outro', icon: 'leaf-outline', hint: 'Seu proprio caminho' },
+];
 
 export default function CreateSeed() {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+  const colors = theme.colors;
   const [selectedType, setSelectedType] = useState<SeedType | null>(null);
   const [name, setName] = useState('');
   const [why, setWhy] = useState('');
@@ -27,7 +32,7 @@ export default function CreateSeed() {
 
   async function handleNext() {
     if (!selectedType) { Alert.alert('Escolha um tipo de semente'); return; }
-    if (!name.trim()) { Alert.alert('Dê um nome para sua semente'); return; }
+    if (!name.trim()) { Alert.alert('De um nome para sua semente'); return; }
 
     setLoading(true);
     try {
@@ -42,7 +47,7 @@ export default function CreateSeed() {
       router.push({ pathname: '/seed/questions', params: { seedId: seed.id, seedName: seed.name, seedType: seed.type } });
     } catch (error) {
       console.error('Failed to create seed', error);
-      Alert.alert('Erro', 'Não foi possível criar a semente. Tente novamente.');
+      Alert.alert('Erro', 'Nao foi possivel criar a semente. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -51,35 +56,34 @@ export default function CreateSeed() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-
         <TouchableOpacity onPress={() => router.back()} style={styles.back}>
-          <Text style={styles.backText}>← Voltar</Text>
+          <Ionicons name="chevron-back" size={18} color={colors.muted} />
+          <Text style={styles.backText}>Voltar</Text>
         </TouchableOpacity>
 
         <Text style={styles.eyebrow}>NOVA SEMENTE</Text>
-        <Text style={styles.title}>O que você quer{'\n'}cultivar?</Text>
+        <Text style={styles.title}>O que voce quer cultivar?</Text>
+        <Text style={styles.subtitle}>Escolha um objetivo que mereca atencao diaria. Pequeno, real e importante.</Text>
 
         <Text style={styles.label}>TIPO DE SEMENTE</Text>
         <View style={styles.typeGrid}>
-          {SEED_TYPES.map(t => (
-            <TouchableOpacity
-              key={t.id}
-              style={[styles.typeCard, selectedType === t.id && styles.typeCardSelected]}
-              onPress={() => setSelectedType(t.id as SeedType)}
-            >
-              <Text style={styles.typeIcon}>{t.icon}</Text>
-              <Text style={[styles.typeLabel, selectedType === t.id && styles.typeLabelSelected]}>
-                {t.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {SEED_TYPES.map(t => {
+            const selected = selectedType === t.id;
+            return (
+              <TouchableOpacity key={t.id} style={[styles.typeCard, selected && styles.typeCardSelected]} onPress={() => setSelectedType(t.id)}>
+                <Ionicons name={t.icon} size={23} color={selected ? colors.primary : colors.muted} />
+                <Text style={[styles.typeLabel, selected && styles.typeLabelSelected]}>{t.label}</Text>
+                <Text style={styles.typeHint}>{t.hint}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <Text style={styles.label}>NOME DA SEMENTE</Text>
         <TextInput
           style={styles.input}
-          placeholder="Ex: Sair das dívidas, Aprender inglês..."
-          placeholderTextColor="#6A6258"
+          placeholder="Ex: sair das dividas, treinar 3x na semana..."
+          placeholderTextColor={colors.subtle}
           value={name}
           onChangeText={setName}
         />
@@ -87,8 +91,8 @@ export default function CreateSeed() {
         <Text style={styles.label}>POR QUE ISSO IMPORTA? <Text style={styles.optional}>(opcional)</Text></Text>
         <TextInput
           style={[styles.input, styles.textarea]}
-          placeholder="O motivo real por trás desse objetivo..."
-          placeholderTextColor="#6A6258"
+          placeholder="O motivo real por tras desse objetivo..."
+          placeholderTextColor={colors.subtle}
           value={why}
           onChangeText={setWhy}
           multiline
@@ -96,11 +100,11 @@ export default function CreateSeed() {
           textAlignVertical="top"
         />
 
-        <Text style={styles.label}>PARA QUEM VOCÊ FAZ ISSO? <Text style={styles.optional}>(opcional)</Text></Text>
+        <Text style={styles.label}>PARA QUEM VOCE FAZ ISSO? <Text style={styles.optional}>(opcional)</Text></Text>
         <TextInput
           style={styles.input}
-          placeholder="Para minha família, para mim mesmo..."
-          placeholderTextColor="#6A6258"
+          placeholder="Para mim, minha familia, meu futuro..."
+          placeholderTextColor={colors.subtle}
           value={forWhom}
           onChangeText={setForWhom}
         />
@@ -110,54 +114,40 @@ export default function CreateSeed() {
           onPress={handleNext}
           disabled={!selectedType || !name.trim() || loading}
         >
-          {loading ? (
-            <ActivityIndicator color="#0A0906" />
-          ) : (
-            <Text style={styles.nextBtnText}>Próximo →</Text>
+          {loading ? <ActivityIndicator color={colors.primaryText} /> : (
+            <>
+              <Text style={styles.nextBtnText}>Continuar</Text>
+              <Ionicons name="arrow-forward" size={18} color={colors.primaryText} />
+            </>
           )}
         </TouchableOpacity>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0906' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 48 },
-  back: { marginBottom: 32 },
-  backText: { color: '#6A6258', fontSize: 14 },
-  eyebrow: { fontSize: 9, letterSpacing: 4, color: '#C4A882', fontWeight: 'bold', marginBottom: 8 },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#F0E8D8', lineHeight: 42, marginBottom: 32 },
-  label: { fontSize: 9, letterSpacing: 3, color: '#C4A882', fontWeight: 'bold', marginBottom: 12 },
-  optional: { color: '#6A6258', fontWeight: 'normal', letterSpacing: 0 },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
-  typeCard: {
-    width: '30%',
-    backgroundColor: '#1C1915',
-    borderWidth: 1,
-    borderColor: '#2A2420',
-    borderRadius: 14,
-    padding: 14,
-    alignItems: 'center',
-    gap: 6,
-  },
-  typeCardSelected: { borderColor: '#C4A882', backgroundColor: 'rgba(196,168,130,0.08)' },
-  typeIcon: { fontSize: 24 },
-  typeLabel: { fontSize: 10, color: '#6A6258', textAlign: 'center', fontWeight: '500' },
-  typeLabelSelected: { color: '#C4A882' },
-  input: {
-    backgroundColor: '#1C1915',
-    borderWidth: 1,
-    borderColor: '#2A2420',
-    borderRadius: 12,
-    padding: 14,
-    color: '#F0E8D8',
-    fontSize: 15,
-    marginBottom: 24,
-  },
-  textarea: { minHeight: 90, textAlignVertical: 'top', lineHeight: 22 },
-  nextBtn: { backgroundColor: '#C4A882', borderRadius: 100, padding: 16, alignItems: 'center', marginTop: 8 },
-  nextBtnDisabled: { opacity: 0.3 },
-  nextBtnText: { color: '#0A0906', fontSize: 14, fontWeight: 'bold', letterSpacing: 2 },
-});
+function makeStyles(theme: AppTheme) {
+  const colors = theme.colors;
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 58, paddingBottom: 48 },
+    back: { marginBottom: 28, flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
+    backText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
+    eyebrow: { fontSize: 9, letterSpacing: 4, color: colors.primary, fontWeight: '800', marginBottom: 8 },
+    title: { fontSize: 35, fontWeight: '800', color: colors.text, lineHeight: 40, marginBottom: 10 },
+    subtitle: { fontSize: 15, color: colors.muted, lineHeight: 22, marginBottom: 28 },
+    label: { fontSize: 9, letterSpacing: 3, color: colors.primary, fontWeight: '800', marginBottom: 12 },
+    optional: { color: colors.subtle, fontWeight: 'normal', letterSpacing: 0 },
+    typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
+    typeCard: { width: '30%', minHeight: 116, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, alignItems: 'center', justifyContent: 'center', gap: 5 },
+    typeCardSelected: { borderColor: colors.primary, backgroundColor: colors.primarySoft },
+    typeLabel: { fontSize: 11, color: colors.text, textAlign: 'center', fontWeight: '800' },
+    typeLabelSelected: { color: colors.primary },
+    typeHint: { fontSize: 9, color: colors.muted, textAlign: 'center', lineHeight: 12 },
+    input: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, color: colors.text, fontSize: 15, marginBottom: 24 },
+    textarea: { minHeight: 96, textAlignVertical: 'top', lineHeight: 22 },
+    nextBtn: { backgroundColor: colors.primary, borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center', marginTop: 8, flexDirection: 'row', gap: 8 },
+    nextBtnDisabled: { opacity: 0.35 },
+    nextBtnText: { color: colors.primaryText, fontSize: 14, fontWeight: '800', letterSpacing: 1.4 },
+  });
+}

@@ -1,9 +1,10 @@
-import {
+﻿import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, Alert,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useDiary } from '@/hooks/useDiary';
 import { saveDiaryEntry } from '@/services/diaryService';
@@ -11,9 +12,13 @@ import { getCurrentUser } from '@/services/authService';
 import { EmotionGrid } from '@/components/diary/EmotionGrid';
 import { DimensionPicker } from '@/components/diary/DimensionPicker';
 import { EntryCard } from '@/components/diary/EntryCard';
+import { useTheme, type AppTheme } from '@/lib/theme';
 import type { EmotionType, DimensionType } from '@/types';
 
 export default function Diary() {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+  const colors = theme.colors;
   const { todayEntry, history, streak, loading, refetch } = useDiary();
   const [emotion, setEmotion] = useState<EmotionType | null>(null);
   const [text, setText] = useState('');
@@ -24,8 +29,8 @@ export default function Diary() {
   useFocusEffect(useCallback(() => { refetch(); }, []));
 
   async function handleSave() {
-    if (!emotion) { Alert.alert('Selecione uma emoção'); return; }
-    if (!dimension) { Alert.alert('Selecione a dimensão do dia'); return; }
+    if (!emotion) { Alert.alert('Selecione uma emocao'); return; }
+    if (!dimension) { Alert.alert('Selecione a profundidade do dia'); return; }
     const user = await getCurrentUser();
     if (!user) return;
 
@@ -43,57 +48,54 @@ export default function Diary() {
       await refetch();
     } catch (error) {
       console.error('Failed to save diary entry', error);
-      Alert.alert('Erro', 'Não foi possível salvar. Tente novamente.');
+      Alert.alert('Erro', 'Nao foi possivel salvar. Tente novamente.');
     } finally {
       setSaving(false);
     }
   }
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color="#C4A882" />
-      </View>
-    );
+    return <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>;
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-
-        <Text style={styles.eyebrow}>DIÁRIO</Text>
+        <Text style={styles.eyebrow}>DIARIO EMOCIONAL</Text>
         <View style={styles.headerRow}>
-          <Text style={styles.title}>Como foi{'\n'}seu dia?</Text>
-          {streak > 0 && (
-            <View style={styles.streakBadge}>
-              <Text style={styles.streakFire}>🔥</Text>
-              <Text style={styles.streakNum}>{streak}</Text>
-              <Text style={styles.streakLabel}>dias</Text>
-            </View>
-          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>Como foi seu dia?</Text>
+            <Text style={styles.subtitle}>Um registro honesto ja conta como cuidado.</Text>
+          </View>
+          <View style={styles.streakBadge}>
+            <Ionicons name="flame-outline" size={20} color={colors.warning} />
+            <Text style={styles.streakNum}>{streak}</Text>
+            <Text style={styles.streakLabel}>dias</Text>
+          </View>
         </View>
 
         {todayEntry && !showForm ? (
           <View style={styles.todayCard}>
-            <Text style={styles.todayLabel}>REGISTRADO HOJE</Text>
+            <View style={styles.savedHeader}>
+              <Ionicons name="checkmark-circle" size={19} color={colors.success} />
+              <Text style={styles.todayLabel}>REGISTRADO HOJE</Text>
+            </View>
             <EntryCard entry={todayEntry} />
-            <TouchableOpacity onPress={() => setShowForm(true)}>
-              <Text style={styles.editLink}>Editar registro de hoje</Text>
+            <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowForm(true)}>
+              <Ionicons name="create-outline" size={16} color={colors.primary} />
+              <Text style={styles.secondaryText}>Editar registro de hoje</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.formCard}>
-            <Text style={styles.formLabel}>COMO VOCÊ ESTÁ?</Text>
+            <Text style={styles.formLabel}>1. COMO VOCE ESTA?</Text>
             <EmotionGrid selected={emotion} onSelect={setEmotion} />
 
-            <Text style={[styles.formLabel, { marginTop: 24 }]}>O QUE ACONTECEU HOJE?</Text>
+            <Text style={[styles.formLabel, { marginTop: 24 }]}>2. O QUE ACONTECEU?</Text>
             <TextInput
               style={styles.textarea}
               placeholder="Escreva livremente... (opcional)"
-              placeholderTextColor="#6A6258"
+              placeholderTextColor={colors.subtle}
               value={text}
               onChangeText={setText}
               multiline
@@ -101,7 +103,7 @@ export default function Diary() {
               textAlignVertical="top"
             />
 
-            <Text style={[styles.formLabel, { marginTop: 8 }]}>DIMENSÃO DO DIA</Text>
+            <Text style={[styles.formLabel, { marginTop: 8 }]}>3. PROFUNDIDADE DO DIA</Text>
             <DimensionPicker selected={dimension} onSelect={setDimension} />
 
             <TouchableOpacity
@@ -109,47 +111,45 @@ export default function Diary() {
               onPress={handleSave}
               disabled={!emotion || !dimension || saving}
             >
-              <Text style={styles.saveBtnText}>
-                {saving ? 'Salvando...' : 'Salvar registro'}
-              </Text>
+              {saving ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.saveBtnText}>Salvar e fechar o dia</Text>}
             </TouchableOpacity>
           </View>
         )}
 
-        {history.length > 0 && (
+        {history.length > 0 ? (
           <>
-            <Text style={[styles.eyebrow, { marginTop: 32, marginBottom: 12 }]}>
-              ENTRADAS ANTERIORES
-            </Text>
-            {history.slice(todayEntry ? 1 : 0).map(entry => (
-              <EntryCard key={entry.id} entry={entry} />
-            ))}
+            <Text style={[styles.eyebrow, { marginTop: 28, marginBottom: 12 }]}>HISTORICO</Text>
+            {history.slice(todayEntry ? 1 : 0).map(entry => <EntryCard key={entry.id} entry={entry} />)}
           </>
-        )}
-
+        ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0906' },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 40 },
-  center: { flex: 1, backgroundColor: '#0A0906', alignItems: 'center', justifyContent: 'center' },
-  eyebrow: { fontSize: 9, letterSpacing: 4, color: '#C4A882', fontWeight: 'bold', marginBottom: 8 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#F0E8D8', lineHeight: 42 },
-  streakBadge: { alignItems: 'center', backgroundColor: '#1C1915', borderRadius: 16, padding: 12, borderWidth: 1, borderColor: '#2A2420' },
-  streakFire: { fontSize: 20 },
-  streakNum: { fontSize: 22, fontWeight: 'bold', color: '#C4A882' },
-  streakLabel: { fontSize: 9, color: '#6A6258', letterSpacing: 1 },
-  todayCard: { marginBottom: 24 },
-  todayLabel: { fontSize: 9, letterSpacing: 3, color: '#4A7A5A', fontWeight: 'bold', marginBottom: 10 },
-  editLink: { fontSize: 12, color: '#6A6258', textAlign: 'center', marginTop: 8 },
-  formCard: { backgroundColor: '#1C1915', borderRadius: 20, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: '#2A2420' },
-  formLabel: { fontSize: 9, letterSpacing: 3, color: '#C4A882', fontWeight: 'bold', marginBottom: 12 },
-  textarea: { backgroundColor: '#0A0906', borderWidth: 1, borderColor: '#2A2420', borderRadius: 12, padding: 14, color: '#F0E8D8', fontSize: 15, minHeight: 100, marginBottom: 16, lineHeight: 22 },
-  saveBtn: { backgroundColor: '#C4A882', borderRadius: 100, padding: 14, alignItems: 'center', marginTop: 16 },
-  saveBtnDisabled: { opacity: 0.3 },
-  saveBtnText: { color: '#0A0906', fontSize: 13, fontWeight: 'bold', letterSpacing: 2 },
-});
+function makeStyles(theme: AppTheme) {
+  const colors = theme.colors;
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { padding: 24, paddingTop: 58, paddingBottom: 40 },
+    center: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+    eyebrow: { fontSize: 9, letterSpacing: 4, color: colors.primary, fontWeight: '800', marginBottom: 8 },
+    headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 },
+    title: { fontSize: 34, fontWeight: '800', color: colors.text, lineHeight: 39 },
+    subtitle: { fontSize: 14, color: colors.muted, lineHeight: 20, marginTop: 6 },
+    streakBadge: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: 10, padding: 12, borderWidth: 1, borderColor: colors.border, minWidth: 72 },
+    streakNum: { fontSize: 22, fontWeight: '800', color: colors.text, marginTop: 2 },
+    streakLabel: { fontSize: 9, color: colors.muted, letterSpacing: 1 },
+    todayCard: { marginBottom: 24 },
+    savedHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
+    todayLabel: { fontSize: 9, letterSpacing: 3, color: colors.success, fontWeight: '800' },
+    secondaryBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: 10, padding: 13, marginTop: 2 },
+    secondaryText: { fontSize: 12, color: colors.primary, fontWeight: '800', letterSpacing: 0.8 },
+    formCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 18, marginBottom: 24, borderWidth: 1, borderColor: colors.border },
+    formLabel: { fontSize: 9, letterSpacing: 3, color: colors.primary, fontWeight: '800', marginBottom: 12 },
+    textarea: { backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 14, color: colors.text, fontSize: 15, minHeight: 104, marginBottom: 16, lineHeight: 22 },
+    saveBtn: { backgroundColor: colors.primary, borderRadius: 12, padding: 15, alignItems: 'center', marginTop: 18 },
+    saveBtnDisabled: { opacity: 0.35 },
+    saveBtnText: { color: colors.primaryText, fontSize: 13, fontWeight: '800', letterSpacing: 1.4 },
+  });
+}

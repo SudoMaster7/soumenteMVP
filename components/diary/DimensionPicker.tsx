@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { DIMENSIONS } from '@/constants/emotions';
+import { useTheme, type AppTheme } from '@/lib/theme';
 import type { DimensionType } from '@/types';
 
 interface Props {
@@ -8,6 +9,10 @@ interface Props {
 }
 
 export function DimensionPicker({ selected, onSelect }: Props) {
+  const { theme } = useTheme();
+  const styles = makeStyles(theme);
+  const colors = theme.colors;
+
   return (
     <View style={styles.row}>
       {DIMENSIONS.map((dim) => {
@@ -15,13 +20,11 @@ export function DimensionPicker({ selected, onSelect }: Props) {
         return (
           <TouchableOpacity
             key={dim.id}
-            style={[styles.btn, isSelected && styles.btnSelected]}
+            style={[styles.btn, isSelected && { borderColor: colors.primary, backgroundColor: colors.primarySoft }]}
             onPress={() => onSelect(dim.id as DimensionType)}
           >
             <Text style={styles.icon}>{dim.icon}</Text>
-            <Text style={[styles.label, isSelected && styles.labelSelected]}>
-              {dim.label}
-            </Text>
+            <Text style={[styles.label, isSelected && { color: colors.primary }]}>{dim.label}</Text>
           </TouchableOpacity>
         );
       })}
@@ -29,20 +32,12 @@ export function DimensionPicker({ selected, onSelect }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8 },
-  btn: {
-    flex: 1,
-    backgroundColor: '#1C1915',
-    borderWidth: 1,
-    borderColor: '#2A2420',
-    borderRadius: 12,
-    padding: 10,
-    alignItems: 'center',
-    gap: 4,
-  },
-  btnSelected: { borderColor: '#C4A882', backgroundColor: 'rgba(196,168,130,0.08)' },
-  icon: { fontSize: 18 },
-  label: { fontSize: 9, color: '#6A6258', textAlign: 'center', letterSpacing: 0.5 },
-  labelSelected: { color: '#C4A882' },
-});
+function makeStyles(theme: AppTheme) {
+  const colors = theme.colors;
+  return StyleSheet.create({
+    row: { flexDirection: 'row', gap: 8 },
+    btn: { flex: 1, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 10, alignItems: 'center', gap: 4, minHeight: 70 },
+    icon: { fontSize: 18 },
+    label: { fontSize: 9, color: colors.muted, textAlign: 'center', letterSpacing: 0.3, fontWeight: '700' },
+  });
+}

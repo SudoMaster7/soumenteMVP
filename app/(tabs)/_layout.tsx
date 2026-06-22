@@ -1,20 +1,24 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Text } from 'react-native';
+import { useTheme } from '@/lib/theme';
 
 export default function TabsLayout() {
+  const { theme } = useTheme();
+
   return (
     <Tabs screenOptions={{
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: '#141210',
-        borderTopColor: '#2A2420',
+        backgroundColor: theme.colors.tab,
+        borderTopColor: theme.colors.border,
         borderTopWidth: 1,
-        height: 64,
+        height: 66,
         paddingBottom: 8,
         paddingTop: 8,
       },
-      tabBarActiveTintColor: '#C4A882',
-      tabBarInactiveTintColor: '#6A6258',
+      tabBarActiveTintColor: theme.colors.primary,
+      tabBarInactiveTintColor: theme.colors.subtle,
       tabBarLabelStyle: {
         fontSize: 10,
         letterSpacing: 0.5,
@@ -23,7 +27,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Início',
+          title: 'Inicio',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),
@@ -39,9 +43,18 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="super-eu"
+        options={{
+          title: 'Super Eu',
+          tabBarIcon: ({ color }) => (
+            <Text style={{ fontSize: 18, color }}>◈</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="diary"
         options={{
-          title: 'Diário',
+          title: 'Diario',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
