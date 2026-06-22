@@ -1,15 +1,13 @@
 import { ORACLE_PHRASES } from '@/constants/supereu';
+import { useSuperEuStore } from '@/stores/superEuStore';
 import type { OraclePhrase, SEFinanceEntry, SEGoal, SEHabit, SEPurchase, SEDiaryEntry } from '@/types/supereu';
 import { Platform } from 'react-native';
-
-const ANTHROPIC_API_KEY = process.env.EXPO_PUBLIC_ANTHROPIC_KEY ?? '';
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 const QWEN_API_KEY = process.env.EXPO_PUBLIC_QWEN_API_KEY ?? '';
 const QWEN_API_URL = process.env.EXPO_PUBLIC_QWEN_API_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
 const QWEN_PROXY_URL = process.env.EXPO_PUBLIC_QWEN_PROXY_URL ?? '/api/qwen';
 const QWEN_MODEL = process.env.EXPO_PUBLIC_QWEN_MODEL ?? 'qwen/qwen3-14b:free';
-const USE_MOCK_AI = (process.env.EXPO_PUBLIC_USE_MOCK_AI ?? 'true') !== 'false';
+const CLAUDE_PROXY_URL = process.env.EXPO_PUBLIC_CLAUDE_PROXY_URL ?? '/api/claude';
 
 type UserContext = {
   goals: SEGoal[];
@@ -33,6 +31,10 @@ export type GeneratedRootSuggestion = {
 
 function hasUsableKey(key: string) {
   return key.length > 20 && !key.includes('cole_aqui');
+}
+
+export function isPaidAiEnabled() {
+  return useSuperEuStore.getState().paidAiEnabled;
 }
 
 function getQwenChatUrl() {
@@ -185,38 +187,38 @@ async function readProviderError(res: Response) {
   }
 }
 
-async function callClaude(prompt: string, maxTokens = 300): Promise<string | null> {
-  // Anthropic should be called from a server/Edge Function in production.
-  // On web, direct browser calls expose the key and usually fail CORS.
-  if (Platform.OS === 'web' || !hasUsableKey(ANTHROPIC_API_KEY)) return null;
-
+async function callClaudeMessages(messages: { role: 'system' | 'user' | 'assistant'; content: string }[], maxTokens = 500): Promise<string | null> {
+  const proxyUrl = CLAUDE_PROXY_URL.trim();
+  if (!proxyUrl) return null;
   try {
-    const res = await fetch(ANTHROPIC_API_URL, {
+    const res = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
         max_tokens: maxTokens,
-        messages: [{ role: 'user', content: prompt }],
+        messages,
       }),
     });
     if (!res.ok) {
-      console.warn('Anthropic request failed', { status: res.status });
+      const message = await readProviderError(res);
+      console.warn('Claude proxy request failed', { status: res.status, message });
       return null;
     }
     const data = await res.json();
-    return data?.content?.[0]?.text ?? null;
+    return typeof data?.text === 'string' ? data.text.trim() : null;
   } catch {
     return null;
   }
 }
 
+async function callClaude(prompt: string, maxTokens = 300): Promise<string | null> {
+  return callClaudeMessages([{ role: 'user', content: prompt }], maxTokens);
+}
+
 async function callQwen(messages: { role: 'system' | 'user' | 'assistant'; content: string }[], maxTokens = 500): Promise<string | null> {
-  if (USE_MOCK_AI) return null;
+  if (!isPaidAiEnabled()) return null;
   const useProxy = Platform.OS === 'web';
   if (!useProxy && !hasUsableKey(QWEN_API_KEY)) return null;
 
@@ -255,9 +257,26 @@ async function callQwen(messages: { role: 'system' | 'user' | 'assistant'; conte
 }
 
 async function callBestModel(prompt: string, maxTokens = 350): Promise<string | null> {
+  const claude = await callClaude(prompt, maxTokens);
+  if (claude) return claude;
   const qwen = await callQwen([{ role: 'user', content: prompt }], maxTokens);
   if (qwen) return qwen;
-  return callClaude(prompt, maxTokens);
+  return null;
+}
+
+export async function testPaidAiConnection(): Promise<string> {
+  const response = await callClaudeMessages([
+    {
+      role: 'user',
+      content: 'Responda apenas: SouMente conectado.',
+    },
+  ], 64);
+
+  if (!response) {
+    throw new Error('Não consegui resposta do Claude. Confira ANTHROPIC_API_KEY e /api/claude.');
+  }
+
+  return response;
 }
 
 function cleanJsonText(text: string) {
@@ -357,7 +376,7 @@ export async function generateRootsWithAI(input: {
   answers: string[];
   variant?: number;
 }): Promise<GeneratedRootSuggestion[]> {
-  if (USE_MOCK_AI) return getMockRoots(input.seedType, input.variant);
+  if (!isPaidAiEnabled()) return getMockRoots(input.seedType, input.variant);
 
   const prompt = `Você é o arquiteto de raízes do app SouMente.
 Crie de 3 a 5 raízes práticas para a semente do usuário.
@@ -400,7 +419,7 @@ Sem markdown, sem texto extra.`;
 }
 
 export async function fetchDailyOracle(context?: UserContext, seed = new Date().toISOString().slice(0, 10)): Promise<OraclePhrase> {
-  if (USE_MOCK_AI) return getMockOracle(context, seed);
+  if (!isPaidAiEnabled()) return getMockOracle(context, seed);
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const variables = buildUserVariables(context);
@@ -435,7 +454,7 @@ Sem markdown, sem texto extra. Tom: sábio, esotérico, preciso e não genérico
 }
 
 export async function getGoalInsight(goal: SEGoal, context?: UserContext): Promise<string> {
-  if (USE_MOCK_AI) {
+  if (!isPaidAiEnabled()) {
     const variables = buildUserVariables(context);
     return `Seu objetivo "${goal.title}" está em ${goal.progress}%, então o melhor movimento agora é pequeno e verificável. Ações: 1) escolha uma tarefa de 15 minutos ligada a esse objetivo; 2) conclua antes de mexer em outro plano. Seus rituais hoje estão em ${variables.completedToday}/${variables.totalHabits}, então use um ritual como gatilho de foco. Frase: a obra cresce quando a vontade vira gesto.`;
   }
@@ -464,7 +483,7 @@ Max 120 palavras.`;
 }
 
 export async function getDiaryReflection(mood: string, text: string, context?: UserContext): Promise<string> {
-  if (USE_MOCK_AI) {
+  if (!isPaidAiEnabled()) {
     const variables = buildUserVariables(context);
     return `O estado "${mood}" aparece como matéria-prima, não como sentença. Pela Lei da Correspondência, o que você escreveu conversa com seu momento: ${variables.completedToday}/${variables.totalHabits} rituais hoje e objetivos em ${variables.averageGoalProgress}% de média. Transmutação possível: escolha um gesto físico simples agora e registre o que mudou depois dele.`;
   }
@@ -488,7 +507,7 @@ Responda em português. Tom: sábio, não clínico. Max 100 palavras.`;
 }
 
 export async function askSouMenteMentor(question: string, context: UserContext, history: ChatMessage[] = []): Promise<string> {
-  if (USE_MOCK_AI) {
+  if (!isPaidAiEnabled()) {
     const variables = buildUserVariables(context);
     return `Modo mock ativado. Lendo seu mapa local: ${variables.completedToday}/${variables.totalHabits} rituais hoje, objetivos em ${variables.averageGoalProgress}% e saldo de R$ ${variables.balance.toLocaleString('pt-BR')}. Para sua pergunta "${question}", eu escolheria o menor passo que gere evidência hoje. Ação de 24h: conclua um ritual e avance +5 em um objetivo ligado a ele.`;
   }
@@ -511,6 +530,9 @@ Regras:
     ...conversation,
     { role: 'user', content: question },
   ];
+
+  const claudeAnswer = await callClaudeMessages(messages, 520);
+  if (claudeAnswer) return claudeAnswer;
 
   const qwen = await callQwen(messages, 520);
   if (qwen) return qwen;

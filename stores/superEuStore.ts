@@ -18,6 +18,7 @@ const DEFAULT_VISIBLE_MODULES: SuperEuModule[] = [
   'financas',
   'grimorio',
 ];
+const DEFAULT_PAID_AI_ENABLED = process.env.EXPO_PUBLIC_USE_MOCK_AI === 'false';
 
 interface SuperEuState {
   habits: SEHabit[];
@@ -28,6 +29,7 @@ interface SuperEuState {
   oracle: OraclePhrase | null;
   oracleDateKey: string; // YYYY-MM-DD
   visibleModules: SuperEuModule[];
+  paidAiEnabled: boolean;
 
   // Habits
   toggleHabitDay: (habitId: string, dayIndex: number) => void;
@@ -64,11 +66,13 @@ interface SuperEuState {
   // Preferences
   toggleModuleVisibility: (module: SuperEuModule) => void;
   resetVisibleModules: () => void;
+  setPaidAiEnabled: (enabled: boolean) => void;
+  togglePaidAi: () => void;
 }
 
 type SuperEuSnapshot = Pick<
   SuperEuState,
-  'habits' | 'goals' | 'purchases' | 'finance' | 'diary' | 'oracle' | 'oracleDateKey' | 'visibleModules'
+  'habits' | 'goals' | 'purchases' | 'finance' | 'diary' | 'oracle' | 'oracleDateKey' | 'visibleModules' | 'paidAiEnabled'
 >;
 
 const createSnapshot = (state: SuperEuState): SuperEuSnapshot => ({
@@ -80,6 +84,7 @@ const createSnapshot = (state: SuperEuState): SuperEuSnapshot => ({
   oracle: state.oracle,
   oracleDateKey: state.oracleDateKey,
   visibleModules: state.visibleModules,
+  paidAiEnabled: state.paidAiEnabled,
 });
 
 const saveSnapshot = async (state: SuperEuState) => {
@@ -105,6 +110,7 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
     oracle: null,
     oracleDateKey: '',
     visibleModules: DEFAULT_VISIBLE_MODULES,
+    paidAiEnabled: DEFAULT_PAID_AI_ENABLED,
 
     toggleHabitDay: (habitId, dayIndex) =>
       setAndPersist((s) => ({
@@ -193,6 +199,8 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
         };
       }),
     resetVisibleModules: () => setAndPersist({ visibleModules: DEFAULT_VISIBLE_MODULES }),
+    setPaidAiEnabled: (enabled) => setAndPersist({ paidAiEnabled: enabled }),
+    togglePaidAi: () => setAndPersist((s) => ({ paidAiEnabled: !s.paidAiEnabled })),
   };
 });
 
@@ -213,6 +221,7 @@ const hydrateSuperEuStore = async () => {
       visibleModules: snapshot.visibleModules?.length
         ? DEFAULT_VISIBLE_MODULES.filter((module) => snapshot.visibleModules?.includes(module))
         : DEFAULT_VISIBLE_MODULES,
+      paidAiEnabled: snapshot.paidAiEnabled ?? DEFAULT_PAID_AI_ENABLED,
     });
   } catch (error) {
     console.warn('Failed to hydrate Super Eu store', error);

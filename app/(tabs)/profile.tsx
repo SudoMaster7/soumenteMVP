@@ -19,6 +19,7 @@ import { DEV_AUTH_ENABLED } from '@/lib/devAuth';
 import { useTheme, type AppTheme } from '@/lib/theme';
 import { SE_TABS } from '@/constants/supereu';
 import { useSuperEuStore } from '@/stores/superEuStore';
+import { testPaidAiConnection } from '@/services/oracleService';
 
 export default function Profile() {
   const { theme, themeName, toggleTheme } = useTheme();
@@ -29,8 +30,11 @@ export default function Profile() {
   const visibleModules = useSuperEuStore((state) => state.visibleModules);
   const toggleModuleVisibility = useSuperEuStore((state) => state.toggleModuleVisibility);
   const resetVisibleModules = useSuperEuStore((state) => state.resetVisibleModules);
+  const paidAiEnabled = useSuperEuStore((state) => state.paidAiEnabled);
+  const setPaidAiEnabled = useSuperEuStore((state) => state.setPaidAiEnabled);
   const [growth, setGrowth] = useState<GrowthProfile | null>(null);
   const [loadingGrowth, setLoadingGrowth] = useState(false);
+  const [testingAi, setTestingAi] = useState(false);
 
   useFocusEffect(useCallback(() => {
     setLoadingGrowth(true);
@@ -61,6 +65,22 @@ export default function Profile() {
         },
       },
     ]);
+  }
+
+  async function handleTestAi() {
+    setTestingAi(true);
+    try {
+      const response = await testPaidAiConnection();
+      Alert.alert('IA conectada', response || 'Claude respondeu com sucesso.');
+    } catch (error) {
+      console.warn('Failed to test paid AI', error);
+      Alert.alert(
+        'IA indisponível',
+        'Não consegui falar com o Claude agora. Confira ANTHROPIC_API_KEY no .env/local e nas variáveis da Vercel.'
+      );
+    } finally {
+      setTestingAi(false);
+    }
   }
 
   const initial = profile?.name?.[0]?.toUpperCase() || 'S';
@@ -220,18 +240,37 @@ export default function Profile() {
       <View style={styles.settingsCard}>
         <View style={styles.settingRow}>
           <View style={styles.settingLeft}>
-            <Ionicons name="sparkles-outline" size={20} color={colors.primary} />
+            <Ionicons name={paidAiEnabled ? 'sparkles-outline' : 'sparkles'} size={20} color={paidAiEnabled ? colors.primary : colors.subtle} />
             <View>
               <Text style={styles.settingLabel}>
-                {process.env.EXPO_PUBLIC_USE_MOCK_AI === 'false' ? 'IA real ativada' : 'IA mockada ativa'}
+                {paidAiEnabled ? 'IA paga ativada' : 'IA paga desativada'}
               </Text>
               <Text style={styles.settingHint}>
-                Modelo: {process.env.EXPO_PUBLIC_QWEN_MODEL || 'não configurado'}
+                {paidAiEnabled ? 'Usa Claude nas funcionalidades de insight.' : 'Usa respostas locais e mockadas sem custo.'}
               </Text>
             </View>
           </View>
-          <Text style={styles.settingValue}>{process.env.EXPO_PUBLIC_USE_MOCK_AI === 'false' ? 'API' : 'Mock'}</Text>
+          <Switch
+            value={paidAiEnabled}
+            onValueChange={setPaidAiEnabled}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={paidAiEnabled ? colors.primaryText : colors.surfaceElevated}
+          />
         </View>
+        <View style={[styles.aiInfoBox, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}>
+          <Text style={[styles.aiInfoTitle, { color: colors.text }]}>Funcionalidades afetadas</Text>
+          <Text style={[styles.aiInfoText, { color: colors.muted }]}>
+            Oráculo diário, Mentor SouMente, reflexões do Grimório, insights de objetivos e geração de raízes.
+          </Text>
+        </View>
+        <TouchableOpacity style={[styles.testAiButton, testingAi && { opacity: 0.65 }]} onPress={handleTestAi} disabled={testingAi}>
+          {testingAi ? (
+            <ActivityIndicator color={colors.primary} size="small" />
+          ) : (
+            <Ionicons name="pulse-outline" size={17} color={colors.primary} />
+          )}
+          <Text style={styles.testAiText}>{testingAi ? 'Testando Claude...' : 'Testar conexão Claude'}</Text>
+        </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
@@ -280,6 +319,11 @@ function makeStyles(theme: AppTheme) {
     settingLabel: { fontSize: 14, color: colors.text, fontWeight: '700' },
     settingHint: { fontSize: 12, color: colors.muted, marginTop: 2 },
     settingValue: { fontSize: 13, color: colors.primary, fontWeight: '800' },
+    aiInfoBox: { marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderRadius: 8, padding: 12 },
+    aiInfoTitle: { fontSize: 12, fontWeight: '900', marginBottom: 5 },
+    aiInfoText: { fontSize: 12, lineHeight: 18 },
+    testAiButton: { marginHorizontal: 16, marginBottom: 16, minHeight: 44, borderRadius: 8, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primarySoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+    testAiText: { fontSize: 12, color: colors.primary, fontWeight: '900', letterSpacing: 0.4 },
     logoutBtn: { borderWidth: 1, borderColor: colors.danger, backgroundColor: colors.dangerSoft, borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 24 },
     logoutText: { color: colors.danger, fontSize: 13, fontWeight: '800', letterSpacing: 1 },
     version: { textAlign: 'center', fontSize: 11, color: colors.subtle },
