@@ -1,11 +1,15 @@
 export type MuscleGroup = 'costas' | 'peito' | 'pernas' | 'ombro' | 'braco' | 'fullbody' | 'esporte';
 
+export type Difficulty = 'facil' | 'medio' | 'dificil';
+
 export interface TreinoExercise {
   id: string;
   name: string;
   sets: number;
   reps: number;
   load: number; // kg
+  difficulty: Difficulty;
+  completed?: boolean; // usado apenas durante o registro de uma sessão
 }
 
 export interface TreinoTemplate {

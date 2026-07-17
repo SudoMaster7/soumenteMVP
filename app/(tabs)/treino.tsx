@@ -1,45 +1,33 @@
 import { useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  Modal, TextInput, Pressable,
+  Modal, TextInput, Pressable, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTreinoStore } from '@/stores/treinoStore';
-import { MUSCLE_GROUPS, MUSCLE_GROUP_LABEL, MUSCLE_GROUP_ICON } from '@/constants/treino';
+import { MUSCLE_GROUPS, MUSCLE_GROUP_LABEL, MUSCLE_GROUP_ICON, DIFFICULTY_LABEL, DIFFICULTY_TONE_FG, DIFFICULTY_TONE_BG } from '@/constants/treino';
 import PillTabBar from '@/components/shared/PillTabBar';
 import BarTrend from '@/components/shared/BarTrend';
+import Stepper from '@/components/shared/Stepper';
+import DifficultyPicker from '@/components/treino/DifficultyPicker';
+import ExerciseEditModal from '@/components/treino/ExerciseEditModal';
 import { useTheme, type AppTheme } from '@/lib/theme';
 import type { MuscleGroup, TreinoExercise, TreinoSession, TreinoTemplate } from '@/types/treino';
 
 type TreinoTab = 'treinos' | 'historico';
 
-type ExerciseForm = { id: string; name: string; sets: string; reps: string; load: string };
-
-function toExerciseForm(exercise: TreinoExercise): ExerciseForm {
-  return { id: exercise.id, name: exercise.name, sets: String(exercise.sets), reps: String(exercise.reps), load: String(exercise.load) };
-}
-
-function fromExerciseForm(form: ExerciseForm): TreinoExercise {
-  return {
-    id: form.id,
-    name: form.name.trim(),
-    sets: Math.max(0, parseInt(form.sets, 10) || 0),
-    reps: Math.max(0, parseInt(form.reps, 10) || 0),
-    load: Math.max(0, Number(form.load.replace(',', '.')) || 0),
-  };
-}
-
 export default function TreinoScreen() {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
-  const { templates, sessions, updateTemplate, addSession } = useTreinoStore();
+  const { templates, sessions, addTemplate, updateTemplate, addSession } = useTreinoStore();
 
   const [tab, setTab] = useState<TreinoTab>('treinos');
   const [activeGroup, setActiveGroup] = useState<MuscleGroup>('costas');
+  const [editingExercise, setEditingExercise] = useState<{ exercise: TreinoExercise | null } | null>(null);
   const [showSession, setShowSession] = useState(false);
-  const [sessionExercises, setSessionExercises] = useState<ExerciseForm[]>([]);
-  const [sessionDuration, setSessionDuration] = useState('');
+  const [sessionExercises, setSessionExercises] = useState<TreinoExercise[]>([]);
+  const [sessionDuration, setSessionDuration] = useState(30);
   const [sessionNotes, setSessionNotes] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [selectedExerciseName, setSelectedExerciseName] = useState<string | null>(null);
@@ -68,49 +56,56 @@ export default function TreinoScreen() {
   }, [sessions, activeExerciseName]);
 
   function openSession(tpl: TreinoTemplate) {
-    setSessionExercises(tpl.exercises.map(toExerciseForm));
-    setSessionDuration('');
+    setSessionExercises(tpl.exercises.map((ex) => ({ ...ex, completed: false })));
+    setSessionDuration(30);
     setSessionNotes('');
     setShowSession(true);
   }
 
-  function updateSessionExercise(id: string, patch: Partial<ExerciseForm>) {
+  function updateSessionExercise(id: string, patch: Partial<TreinoExercise>) {
     setSessionExercises((current) => current.map((ex) => (ex.id === id ? { ...ex, ...patch } : ex)));
   }
 
+  const completedCount = sessionExercises.filter((ex) => ex.completed).length;
+
   function handleSaveSession() {
     if (!template) return;
-    const exercises = sessionExercises.map(fromExerciseForm).filter((ex) => ex.name.length > 0);
-    if (exercises.length === 0) return;
+    if (sessionExercises.length === 0) return;
     const session: TreinoSession = {
       id: Date.now().toString(),
       templateId: template.id,
       group: template.group,
       date: new Date().toISOString(),
-      durationMinutes: Math.max(0, parseInt(sessionDuration, 10) || 0),
+      durationMinutes: sessionDuration,
       notes: sessionNotes.trim(),
-      exercises,
+      exercises: sessionExercises,
     };
     addSession(session);
     setShowSession(false);
   }
 
-  function handleAddExerciseToTemplate() {
+  function handleSaveExercise(exercise: TreinoExercise) {
     if (!template) return;
-    const newExercise: TreinoExercise = { id: Date.now().toString(), name: 'Novo exercício', sets: 3, reps: 10, load: 0 };
-    updateTemplate(template.id, { exercises: [...template.exercises, newExercise] });
-  }
-
-  function handleUpdateTemplateExercise(exerciseId: string, patch: Partial<TreinoExercise>) {
-    if (!template) return;
+    const exists = template.exercises.some((ex) => ex.id === exercise.id);
     updateTemplate(template.id, {
-      exercises: template.exercises.map((ex) => (ex.id === exerciseId ? { ...ex, ...patch } : ex)),
+      exercises: exists
+        ? template.exercises.map((ex) => (ex.id === exercise.id ? exercise : ex))
+        : [...template.exercises, exercise],
     });
+    setEditingExercise(null);
   }
 
-  function handleDeleteTemplateExercise(exerciseId: string) {
-    if (!template) return;
-    updateTemplate(template.id, { exercises: template.exercises.filter((ex) => ex.id !== exerciseId) });
+  function handleDeleteExercise() {
+    if (!template || !editingExercise?.exercise) return;
+    updateTemplate(template.id, { exercises: template.exercises.filter((ex) => ex.id !== editingExercise.exercise!.id) });
+    setEditingExercise(null);
+  }
+
+  function ensureTemplateForGroup(group: MuscleGroup) {
+    setActiveGroup(group);
+    if (!templates.some((t) => t.group === group)) {
+      addTemplate({ id: `tpl-${group}-${Date.now()}`, group, name: `${MUSCLE_GROUP_LABEL[group]} padrão`, exercises: [] });
+    }
   }
 
   return (
@@ -138,10 +133,10 @@ export default function TreinoScreen() {
               return (
                 <TouchableOpacity
                   key={group}
-                  onPress={() => setActiveGroup(group)}
+                  onPress={() => ensureTemplateForGroup(group)}
                   style={[styles.groupChip, { backgroundColor: active ? colors.primarySoft : colors.surface, borderColor: active ? colors.primary : colors.border }]}
                 >
-                  <Ionicons name={MUSCLE_GROUP_ICON[group]} size={15} color={active ? colors.primary : colors.muted} />
+                  <Ionicons name={MUSCLE_GROUP_ICON[group]} size={16} color={active ? colors.primary : colors.muted} />
                   <Text style={[styles.groupChipText, { color: active ? colors.primary : colors.muted }]}>{MUSCLE_GROUP_LABEL[group]}</Text>
                 </TouchableOpacity>
               );
@@ -151,52 +146,44 @@ export default function TreinoScreen() {
           {template ? (
             <View style={styles.templateCard}>
               <Text style={styles.templateName}>{template.name}</Text>
-              {template.exercises.map((exercise) => (
-                <View key={exercise.id} style={styles.exerciseRow}>
-                  <TextInput
-                    style={[styles.exerciseInput, styles.exerciseNameInput]}
-                    value={exercise.name}
-                    onChangeText={(name) => handleUpdateTemplateExercise(exercise.id, { name })}
-                    placeholder="Nome"
-                    placeholderTextColor={colors.subtle}
-                  />
-                  <TextInput
-                    style={styles.exerciseInput}
-                    value={String(exercise.sets)}
-                    onChangeText={(v) => handleUpdateTemplateExercise(exercise.id, { sets: Math.max(0, parseInt(v, 10) || 0) })}
-                    keyboardType="number-pad"
-                    placeholder="Séries"
-                    placeholderTextColor={colors.subtle}
-                  />
-                  <TextInput
-                    style={styles.exerciseInput}
-                    value={String(exercise.reps)}
-                    onChangeText={(v) => handleUpdateTemplateExercise(exercise.id, { reps: Math.max(0, parseInt(v, 10) || 0) })}
-                    keyboardType="number-pad"
-                    placeholder="Reps"
-                    placeholderTextColor={colors.subtle}
-                  />
-                  <TextInput
-                    style={styles.exerciseInput}
-                    value={String(exercise.load)}
-                    onChangeText={(v) => handleUpdateTemplateExercise(exercise.id, { load: Math.max(0, Number(v.replace(',', '.')) || 0) })}
-                    keyboardType="decimal-pad"
-                    placeholder="Kg"
-                    placeholderTextColor={colors.subtle}
-                  />
-                  <TouchableOpacity onPress={() => handleDeleteTemplateExercise(exercise.id)} style={styles.exerciseDelete}>
-                    <Ionicons name="trash-outline" size={15} color={colors.danger} />
-                  </TouchableOpacity>
-                </View>
-              ))}
 
-              <TouchableOpacity style={styles.addExerciseBtn} onPress={handleAddExerciseToTemplate}>
-                <Ionicons name="add-circle-outline" size={16} color={colors.primary} />
+              {template.exercises.length === 0 ? (
+                <Text style={styles.emptyExercises}>Nenhum exercício ainda. Adicione o primeiro abaixo.</Text>
+              ) : (
+                template.exercises.map((exercise) => {
+                  const fg = colors[DIFFICULTY_TONE_FG[exercise.difficulty]];
+                  const bg = colors[DIFFICULTY_TONE_BG[exercise.difficulty]];
+                  return (
+                    <TouchableOpacity
+                      key={exercise.id}
+                      style={styles.exerciseCard}
+                      onPress={() => setEditingExercise({ exercise })}
+                      activeOpacity={0.75}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.exerciseName} numberOfLines={1}>{exercise.name}</Text>
+                        <Text style={styles.exerciseMeta}>{exercise.sets}x{exercise.reps} · {exercise.load}kg</Text>
+                      </View>
+                      <View style={[styles.difficultyBadge, { backgroundColor: bg, borderColor: fg }]}>
+                        <Text style={[styles.difficultyBadgeText, { color: fg }]}>{DIFFICULTY_LABEL[exercise.difficulty]}</Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.subtle} style={{ marginLeft: 6 }} />
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+
+              <TouchableOpacity style={styles.addExerciseBtn} onPress={() => setEditingExercise({ exercise: null })}>
+                <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
                 <Text style={styles.addExerciseBtnTxt}>Adicionar exercício</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.startBtn} onPress={() => openSession(template)}>
-                <Ionicons name="play-circle-outline" size={18} color={colors.primaryText} />
+              <TouchableOpacity
+                style={[styles.startBtn, template.exercises.length === 0 && styles.startBtnDisabled]}
+                onPress={() => openSession(template)}
+                disabled={template.exercises.length === 0}
+              >
+                <Ionicons name="play-circle-outline" size={20} color={colors.primaryText} />
                 <Text style={styles.startBtnTxt}>Iniciar treino</Text>
               </TouchableOpacity>
             </View>
@@ -250,9 +237,12 @@ export default function TreinoScreen() {
                   {expanded ? (
                     <View style={styles.sessionDetail}>
                       {session.exercises.map((exercise) => (
-                        <Text key={exercise.id} style={styles.sessionExerciseLine}>
-                          {exercise.name} — {exercise.sets}x{exercise.reps} · {exercise.load}kg
-                        </Text>
+                        <View key={exercise.id} style={styles.sessionExerciseRow}>
+                          {exercise.completed ? <Ionicons name="checkmark-circle" size={14} color={colors.success} /> : <Ionicons name="ellipse-outline" size={14} color={colors.subtle} />}
+                          <Text style={styles.sessionExerciseLine}>
+                            {exercise.name} — {exercise.sets}x{exercise.reps} · {exercise.load}kg · {DIFFICULTY_LABEL[exercise.difficulty]}
+                          </Text>
+                        </View>
                       ))}
                       {session.notes ? <Text style={styles.sessionNotes}>{session.notes}</Text> : null}
                     </View>
@@ -266,74 +256,69 @@ export default function TreinoScreen() {
 
       <Modal visible={showSession} transparent animationType="slide" onRequestClose={() => setShowSession(false)}>
         <Pressable style={styles.overlay} onPress={() => setShowSession(false)} />
-        <ScrollView style={styles.sheet} keyboardShouldPersistTaps="handled">
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>Registrar treino</Text>
-            <TouchableOpacity onPress={() => setShowSession(false)} style={styles.closeButton}>
-              <Ionicons name="close" size={18} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {sessionExercises.map((exercise) => (
-            <View key={exercise.id} style={styles.exerciseRow}>
-              <TextInput
-                style={[styles.exerciseInput, styles.exerciseNameInput]}
-                value={exercise.name}
-                onChangeText={(name) => updateSessionExercise(exercise.id, { name })}
-                placeholder="Nome"
-                placeholderTextColor={colors.subtle}
-              />
-              <TextInput
-                style={styles.exerciseInput}
-                value={exercise.sets}
-                onChangeText={(sets) => updateSessionExercise(exercise.id, { sets })}
-                keyboardType="number-pad"
-                placeholder="Séries"
-                placeholderTextColor={colors.subtle}
-              />
-              <TextInput
-                style={styles.exerciseInput}
-                value={exercise.reps}
-                onChangeText={(reps) => updateSessionExercise(exercise.id, { reps })}
-                keyboardType="number-pad"
-                placeholder="Reps"
-                placeholderTextColor={colors.subtle}
-              />
-              <TextInput
-                style={styles.exerciseInput}
-                value={exercise.load}
-                onChangeText={(load) => updateSessionExercise(exercise.id, { load })}
-                keyboardType="decimal-pad"
-                placeholder="Kg"
-                placeholderTextColor={colors.subtle}
-              />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetWrap}>
+          <ScrollView style={styles.sheet} keyboardShouldPersistTaps="handled">
+            <View style={styles.sheetHeader}>
+              <View>
+                <Text style={styles.sheetTitle}>Registrar treino</Text>
+                <Text style={styles.sheetSubtitle}>{completedCount}/{sessionExercises.length} exercícios concluídos</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowSession(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={18} color={colors.text} />
+              </TouchableOpacity>
             </View>
-          ))}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Duração total (minutos)"
-            placeholderTextColor={colors.subtle}
-            value={sessionDuration}
-            onChangeText={setSessionDuration}
-            keyboardType="number-pad"
-          />
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Observações livres"
-            placeholderTextColor={colors.subtle}
-            value={sessionNotes}
-            onChangeText={setSessionNotes}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
+            {sessionExercises.map((exercise) => (
+              <View key={exercise.id} style={styles.sessionExerciseCard}>
+                <TouchableOpacity
+                  style={styles.sessionExerciseHeader}
+                  onPress={() => updateSessionExercise(exercise.id, { completed: !exercise.completed })}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name={exercise.completed ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={exercise.completed ? colors.success : colors.subtle} />
+                  <Text style={[styles.sessionExerciseName, exercise.completed && styles.sessionExerciseNameDone]} numberOfLines={1}>{exercise.name}</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSaveSession}>
-            <Text style={styles.submitButtonText}>Salvar treino</Text>
-          </TouchableOpacity>
-        </ScrollView>
+                <View style={styles.stepperRow}>
+                  <Stepper label="Séries" value={exercise.sets} onChange={(sets) => updateSessionExercise(exercise.id, { sets })} min={1} max={20} />
+                  <Stepper label="Repetições" value={exercise.reps} onChange={(reps) => updateSessionExercise(exercise.id, { reps })} min={1} max={50} />
+                </View>
+                <View style={[styles.stepperRow, { marginBottom: 14 }]}>
+                  <Stepper label="Carga" value={exercise.load} onChange={(load) => updateSessionExercise(exercise.id, { load })} min={0} max={500} step={2.5} unit="kg" />
+                </View>
+
+                <DifficultyPicker label="Como foi?" value={exercise.difficulty} onChange={(difficulty) => updateSessionExercise(exercise.id, { difficulty })} />
+              </View>
+            ))}
+
+            <View style={[styles.stepperRow, { marginTop: 4 }]}>
+              <Stepper label="Duração" value={sessionDuration} onChange={setSessionDuration} min={5} max={240} step={5} unit="min" />
+            </View>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Observações livres"
+              placeholderTextColor={colors.subtle}
+              value={sessionNotes}
+              onChangeText={setSessionNotes}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSaveSession}>
+              <Text style={styles.submitButtonText}>Salvar treino</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
+
+      <ExerciseEditModal
+        visible={editingExercise !== null}
+        exercise={editingExercise?.exercise ?? null}
+        onSave={handleSaveExercise}
+        onDelete={editingExercise?.exercise ? handleDeleteExercise : undefined}
+        onClose={() => setEditingExercise(null)}
+      />
     </View>
   );
 }
@@ -348,19 +333,22 @@ function makeStyles(theme: AppTheme) {
     title: { fontSize: 28, fontWeight: '800', color: colors.text, lineHeight: 33, marginBottom: 4 },
     scroll: { flex: 1 },
     content: { padding: 20, paddingBottom: 40 },
-    groupRow: { gap: 8, paddingBottom: 14 },
-    groupChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 9, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 9 },
+    groupRow: { gap: 8, paddingBottom: 16 },
+    groupChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 10, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 11 },
     groupChipText: { fontSize: 12, fontWeight: '800' },
-    templateCard: { backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 14 },
-    templateName: { fontSize: 16, fontWeight: '900', color: colors.text, marginBottom: 12 },
-    exerciseRow: { flexDirection: 'row', gap: 6, marginBottom: 8, alignItems: 'center' },
-    exerciseInput: { flex: 1, backgroundColor: colors.surfaceElevated, borderRadius: 8, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingVertical: 8, paddingHorizontal: 8, fontSize: 12 },
-    exerciseNameInput: { flex: 2 },
-    exerciseDelete: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.dangerSoft },
-    addExerciseBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, marginBottom: 16 },
-    addExerciseBtnTxt: { color: colors.primary, fontSize: 12, fontWeight: '800' },
-    startBtn: { backgroundColor: colors.primary, borderRadius: 10, padding: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
-    startBtnTxt: { color: colors.primaryText, fontSize: 13, fontWeight: '800', letterSpacing: 1 },
+    templateCard: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14 },
+    templateName: { fontSize: 17, fontWeight: '900', color: colors.text, marginBottom: 14 },
+    emptyExercises: { fontSize: 13, color: colors.subtle, fontStyle: 'italic', marginBottom: 14 },
+    exerciseCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.surfaceElevated, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 10, minHeight: 56 },
+    exerciseName: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 3 },
+    exerciseMeta: { fontSize: 12, color: colors.muted },
+    difficultyBadge: { borderWidth: 1, borderRadius: 100, paddingHorizontal: 9, paddingVertical: 4 },
+    difficultyBadgeText: { fontSize: 10, fontWeight: '800' },
+    addExerciseBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 13, marginTop: 2, marginBottom: 14 },
+    addExerciseBtnTxt: { color: colors.primary, fontSize: 13, fontWeight: '800' },
+    startBtn: { backgroundColor: colors.primary, borderRadius: 12, padding: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
+    startBtnDisabled: { opacity: 0.4 },
+    startBtnTxt: { color: colors.primaryText, fontSize: 14, fontWeight: '800', letterSpacing: 1 },
     trendCard: { backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 16 },
     trendTitle: { fontSize: 14, fontWeight: '900', color: colors.text, marginBottom: 10 },
     exercisePickerRow: { gap: 8, paddingBottom: 10 },
@@ -374,15 +362,23 @@ function makeStyles(theme: AppTheme) {
     sessionIconWrap: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
     sessionGroup: { fontSize: 14, fontWeight: '800', color: colors.text },
     sessionMeta: { fontSize: 11, color: colors.muted, marginTop: 2 },
-    sessionDetail: { marginTop: 12, gap: 4 },
-    sessionExerciseLine: { fontSize: 12, color: colors.text },
+    sessionDetail: { marginTop: 12, gap: 6 },
+    sessionExerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    sessionExerciseLine: { fontSize: 12, color: colors.text, flexShrink: 1 },
     sessionNotes: { fontSize: 12, color: colors.muted, marginTop: 6, fontStyle: 'italic' },
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
-    sheet: { backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 20, paddingBottom: 32, maxHeight: '80%' },
-    sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+    sheetWrap: { maxHeight: '88%' },
+    sheet: { backgroundColor: colors.surfaceElevated, borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 20, paddingBottom: 32 },
+    sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
     sheetTitle: { fontSize: 18, fontWeight: '900', color: colors.text },
+    sheetSubtitle: { fontSize: 12, color: colors.muted, marginTop: 3, fontWeight: '700' },
     closeButton: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.backgroundAlt },
-    input: { borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, padding: 14, fontSize: 15, marginBottom: 12 },
+    sessionExerciseCard: { backgroundColor: colors.surface, borderRadius: 12, borderWidth: 1, borderColor: colors.border, padding: 14, marginBottom: 12 },
+    sessionExerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+    sessionExerciseName: { flex: 1, fontSize: 15, fontWeight: '800', color: colors.text },
+    sessionExerciseNameDone: { color: colors.muted, textDecorationLine: 'line-through' },
+    stepperRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+    input: { borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, color: colors.text, padding: 14, fontSize: 15, marginBottom: 12, marginTop: 4 },
     textArea: { minHeight: 80 },
     submitButton: { backgroundColor: colors.primary, borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 2 },
     submitButtonText: { color: colors.primaryText, fontSize: 14, fontWeight: '900' },

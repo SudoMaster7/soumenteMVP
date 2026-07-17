@@ -1,7 +1,22 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DEFAULT_TEMPLATES } from '@/constants/treino';
-import type { TreinoTemplate, TreinoSession } from '@/types/treino';
+import type { TreinoExercise, TreinoTemplate, TreinoSession } from '@/types/treino';
+
+const normalizeExercise = (exercise: TreinoExercise): TreinoExercise => ({
+  ...exercise,
+  difficulty: exercise.difficulty ?? 'medio',
+});
+
+const normalizeTemplate = (template: TreinoTemplate): TreinoTemplate => ({
+  ...template,
+  exercises: template.exercises.map(normalizeExercise),
+});
+
+const normalizeSession = (session: TreinoSession): TreinoSession => ({
+  ...session,
+  exercises: session.exercises.map(normalizeExercise),
+});
 
 const STORE_KEY = 'treino-store';
 
@@ -68,8 +83,8 @@ const hydrateTreinoStore = async () => {
 
     const snapshot = JSON.parse(raw) as Partial<TreinoSnapshot>;
     useTreinoStore.setState({
-      templates: snapshot.templates ?? DEFAULT_TEMPLATES,
-      sessions: snapshot.sessions ?? [],
+      templates: (snapshot.templates ?? DEFAULT_TEMPLATES).map(normalizeTemplate),
+      sessions: (snapshot.sessions ?? []).map(normalizeSession),
     });
   } catch (error) {
     console.warn('Failed to hydrate Treino store', error);
