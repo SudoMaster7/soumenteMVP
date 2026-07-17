@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { todayHermetic } from '@/constants/supereu';
 import { fetchDailyOracle } from '@/services/oracleService';
 import { useSuperEuStore } from '@/stores/superEuStore';
 import { useTheme, type AppTheme } from '@/lib/theme';
 
-export default function OracleModule() {
+interface Props {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const PRINCIPLES: { icon: keyof typeof Ionicons.glyphMap; law: string; quote: string }[] = [
+  { icon: 'bulb-outline', law: 'Mentalismo', quote: 'O que você pensa alimenta o que você faz' },
+  { icon: 'git-compare-outline', law: 'Correspondência', quote: 'O pequeno gesto revela o grande caminho' },
+  { icon: 'pulse-outline', law: 'Vibração', quote: 'A consistência muda seu estado' },
+  { icon: 'repeat-outline', law: 'Causalidade', quote: 'Toda ação pequena deixa um rastro' },
+];
+
+export default function OracleModal({ visible, onClose }: Props) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
-  const { oracle, oracleDateKey, setOracle, goals, habits, purchases, finance, diary } = useSuperEuStore();
+  const { oracle, oracleDateKey, setOracle, habits, purchases, finance, diary } = useSuperEuStore();
   const [loading, setLoading] = useState(false);
   const [focusCounter, setFocusCounter] = useState(0);
   const [speaking, setSpeaking] = useState(false);
@@ -18,9 +30,9 @@ export default function OracleModule() {
   const todayKey = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
-    if (oracleDateKey !== todayKey) loadOracle();
+    if (visible && oracleDateKey !== todayKey) loadOracle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [visible]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined' || !window.speechSynthesis) return;
@@ -40,7 +52,7 @@ export default function OracleModule() {
     setLoading(true);
     const nextCounter = forceNew ? focusCounter + 1 : focusCounter;
     const seed = forceNew ? `${todayKey}-${nextCounter}-${Date.now()}` : todayKey;
-    const result = await fetchDailyOracle({ goals, habits, purchases, finance, diary }, seed);
+    const result = await fetchDailyOracle({ habits, purchases, finance, diary }, seed);
     if (forceNew) setFocusCounter(nextCounter);
     setOracle(result, todayKey);
     setLoading(false);
@@ -122,113 +134,97 @@ export default function OracleModule() {
     window.speechSynthesis.speak(utterance);
   }
 
-  const completedHabitsToday = habits.reduce((acc, h) => {
-    const dayOfWeek = new Date().getDay();
-    const idx = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    return acc + (h.days[idx] ? 1 : 0);
-  }, 0);
-  const avgGoalProgress = goals.length ? Math.round(goals.reduce((a, g) => a + g.progress, 0) / goals.length) : 0;
-  const balance = finance.reduce((a, e) => a + e.amount, 0);
+  function handleClose() {
+    stopMotivationAudio();
+    onClose();
+  }
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <Text style={styles.dateLabel}>{todayHermetic()}</Text>
-
-      <View style={styles.oracleCard}>
-        <View style={styles.cardHeader}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="compass-outline" size={22} color={colors.primary} />
-          </View>
-          <View>
-            <Text style={styles.oracleTag}>ORÁCULO DIÁRIO</Text>
-            <Text style={styles.oracleHint}>Um foco simples para hoje</Text>
-          </View>
+    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <Text style={styles.dateLabel}>{todayHermetic()}</Text>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={20} color={colors.text} />
+          </TouchableOpacity>
         </View>
-        {loading ? (
-          <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
-        ) : (
-          <>
-            <Text style={styles.oracleQuote}>"{oracle?.quote ?? '...'}"</Text>
-            <Text style={styles.oraclePrinciple}>{oracle?.principle ?? ''}</Text>
-            {oracle?.focus ? (
-              <View style={styles.focusBox}>
-                <View style={styles.focusHeader}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.focusLabel}>FOCO DO DIA</Text>
-                    <Text style={styles.focusText}>{oracle.focus}</Text>
+
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+          <View style={styles.oracleCard}>
+            <View style={styles.cardHeader}>
+              <View style={styles.iconCircle}>
+                <Ionicons name="compass-outline" size={22} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.oracleTag}>ORÁCULO DIÁRIO</Text>
+                <Text style={styles.oracleHint}>Um foco simples para hoje</Text>
+              </View>
+            </View>
+            {loading ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 24 }} />
+            ) : (
+              <>
+                <Text style={styles.oracleQuote}>"{oracle?.quote ?? '...'}"</Text>
+                <Text style={styles.oraclePrinciple}>{oracle?.principle ?? ''}</Text>
+                {oracle?.focus ? (
+                  <View style={styles.focusBox}>
+                    <View style={styles.focusHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.focusLabel}>FOCO DO DIA</Text>
+                        <Text style={styles.focusText}>{oracle.focus}</Text>
+                      </View>
+                      <TouchableOpacity style={styles.audioBtn} onPress={playMotivationAudio} disabled={loading}>
+                        <Ionicons name={speaking ? 'stop' : 'volume-high-outline'} size={16} color={colors.primary} />
+                        <Text style={styles.audioText}>{speaking ? 'Parar' : 'Ouvir'}</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <TouchableOpacity style={styles.audioBtn} onPress={playMotivationAudio} disabled={loading}>
-                    <Ionicons name={speaking ? 'stop' : 'volume-high-outline'} size={16} color={colors.primary} />
-                    <Text style={styles.audioText}>{speaking ? 'Parar' : 'Ouvir'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : null}
-            {oracle?.action ? (
-              <View style={styles.actionBox}>
-                <Ionicons name="trail-sign-outline" size={16} color={colors.accent} />
-                <Text style={styles.actionText}>{oracle.action}</Text>
-              </View>
-            ) : null}
-          </>
-        )}
-        <View style={styles.oracleActions}>
-          <TouchableOpacity onPress={playMotivationAudio} style={styles.newOracleBtn} disabled={loading || !oracle}>
-            <Text style={styles.newOracleTxt}>{speaking ? 'Parar voz' : 'Voz mística'}</Text>
-            <Ionicons name={speaking ? 'stop' : 'volume-high-outline'} size={15} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => loadOracle(true)} style={styles.newOracleBtn} disabled={loading}>
-            <Text style={styles.newOracleTxt}>Gerar novo foco</Text>
-            <Ionicons name="refresh" size={15} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.statsRow}>
-        <StatCard label="Rituais hoje" value={`${completedHabitsToday}/${habits.length}`} theme={theme} />
-        <StatCard label="Objetivos" value={`${avgGoalProgress}%`} theme={theme} />
-        <StatCard label="Saldo" value={`${balance >= 0 ? '+' : '-'}R$${Math.abs(balance).toLocaleString('pt-BR')}`} theme={theme} tone={balance >= 0 ? 'success' : 'danger'} />
-      </View>
-
-      <Text style={styles.sectionLabel}>PRINCÍPIOS ATIVOS</Text>
-      {PRINCIPLES.map((p) => (
-        <View key={p.law} style={styles.principleCard}>
-          <Ionicons name={p.icon} size={20} color={colors.accent} />
-          <View style={styles.principleBody}>
-            <Text style={styles.principleLaw}>{p.law}</Text>
-            <Text style={styles.principleQuote}>"{p.quote}"</Text>
+                ) : null}
+                {oracle?.action ? (
+                  <View style={styles.actionBox}>
+                    <Ionicons name="trail-sign-outline" size={16} color={colors.accent} />
+                    <Text style={styles.actionText}>{oracle.action}</Text>
+                  </View>
+                ) : null}
+              </>
+            )}
+            <View style={styles.oracleActions}>
+              <TouchableOpacity onPress={playMotivationAudio} style={styles.newOracleBtn} disabled={loading || !oracle}>
+                <Text style={styles.newOracleTxt}>{speaking ? 'Parar voz' : 'Voz mística'}</Text>
+                <Ionicons name={speaking ? 'stop' : 'volume-high-outline'} size={15} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => loadOracle(true)} style={styles.newOracleBtn} disabled={loading}>
+                <Text style={styles.newOracleTxt}>Gerar novo foco</Text>
+                <Ionicons name="refresh" size={15} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      ))}
-    </ScrollView>
+
+          <Text style={styles.sectionLabel}>PRINCÍPIOS ATIVOS</Text>
+          {PRINCIPLES.map((p) => (
+            <View key={p.law} style={styles.principleCard}>
+              <Ionicons name={p.icon} size={20} color={colors.accent} />
+              <View style={styles.principleBody}>
+                <Text style={styles.principleLaw}>{p.law}</Text>
+                <Text style={styles.principleQuote}>"{p.quote}"</Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+    </Modal>
   );
 }
-
-function StatCard({ label, value, theme, tone }: { label: string; value: string; theme: AppTheme; tone?: 'success' | 'danger' }) {
-  const styles = makeStyles(theme);
-  const colors = theme.colors;
-  const color = tone === 'success' ? colors.success : tone === 'danger' ? colors.danger : colors.text;
-  return (
-    <View style={styles.statCard}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
-const PRINCIPLES: { icon: keyof typeof Ionicons.glyphMap; law: string; quote: string }[] = [
-  { icon: 'bulb-outline', law: 'Mentalismo', quote: 'O que você pensa alimenta o que você faz' },
-  { icon: 'git-compare-outline', law: 'Correspondência', quote: 'O pequeno gesto revela o grande caminho' },
-  { icon: 'pulse-outline', law: 'Vibração', quote: 'A consistência muda seu estado' },
-  { icon: 'repeat-outline', law: 'Causalidade', quote: 'Toda ação pequena deixa um rastro' },
-];
 
 function makeStyles(theme: AppTheme) {
   const colors = theme.colors;
   return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 58, paddingBottom: 8 },
+    closeButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
     scroll: { flex: 1, backgroundColor: colors.background },
     content: { padding: 20, paddingBottom: 40 },
-    dateLabel: { fontSize: 10, letterSpacing: 2, color: colors.muted, textAlign: 'center', marginBottom: 20, textTransform: 'uppercase' },
+    dateLabel: { fontSize: 10, letterSpacing: 2, color: colors.muted, textTransform: 'uppercase' },
     oracleCard: { backgroundColor: colors.surface, borderRadius: 10, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: colors.border },
     cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
     iconCircle: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primarySoft, borderWidth: 1, borderColor: colors.border },
@@ -247,10 +243,6 @@ function makeStyles(theme: AppTheme) {
     oracleActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 14 },
     newOracleBtn: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 6 },
     newOracleTxt: { fontSize: 12, color: colors.primary, letterSpacing: 0.8, fontWeight: '800' },
-    statsRow: { flexDirection: 'row', gap: 10, marginBottom: 28 },
-    statCard: { flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.border, alignItems: 'center', minHeight: 82 },
-    statValue: { fontSize: 18, fontWeight: '800', marginBottom: 6 },
-    statLabel: { fontSize: 9, letterSpacing: 1.2, color: colors.muted, textAlign: 'center', lineHeight: 13, textTransform: 'uppercase' },
     sectionLabel: { fontSize: 9, letterSpacing: 3, color: colors.muted, fontWeight: '800', marginBottom: 12 },
     principleCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, backgroundColor: colors.surface, borderRadius: 10, padding: 16, borderWidth: 1, borderColor: colors.border, marginBottom: 10 },
     principleBody: { flex: 1 },

@@ -12,8 +12,12 @@ import { getCurrentUser } from '@/services/authService';
 import { EmotionGrid } from '@/components/diary/EmotionGrid';
 import { DimensionPicker } from '@/components/diary/DimensionPicker';
 import { EntryCard } from '@/components/diary/EntryCard';
+import PillTabBar from '@/components/shared/PillTabBar';
+import GrimorioPanel from '@/components/grimorio/GrimorioPanel';
 import { useTheme, type AppTheme } from '@/lib/theme';
 import type { EmotionType, DimensionType } from '@/types';
+
+type DiaryTab = 'emocional' | 'grimorio';
 
 export default function Diary() {
   const { theme } = useTheme();
@@ -25,6 +29,7 @@ export default function Diary() {
   const [dimension, setDimension] = useState<DimensionType | null>(null);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [tab, setTab] = useState<DiaryTab>('emocional');
 
   useFocusEffect(useCallback(() => { refetch(); }, []));
 
@@ -59,9 +64,9 @@ export default function Diary() {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>DIARIO EMOCIONAL</Text>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={styles.header}>
+        <Text style={styles.eyebrow}>DIARIO</Text>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Como foi seu dia?</Text>
@@ -73,56 +78,73 @@ export default function Diary() {
             <Text style={styles.streakLabel}>dias</Text>
           </View>
         </View>
+      </View>
 
-        {todayEntry && !showForm ? (
-          <View style={styles.todayCard}>
-            <View style={styles.savedHeader}>
-              <Ionicons name="checkmark-circle" size={19} color={colors.success} />
-              <Text style={styles.todayLabel}>REGISTRADO HOJE</Text>
+      <View style={styles.tabBarWrap}>
+        <PillTabBar<DiaryTab>
+          active={tab}
+          onSelect={setTab}
+          tabs={[
+            { id: 'emocional', label: 'Emocional', icon: 'heart-outline' },
+            { id: 'grimorio', label: 'Grimório', icon: 'book-outline' },
+          ]}
+        />
+      </View>
+
+      {tab === 'emocional' ? (
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+          {todayEntry && !showForm ? (
+            <View style={styles.todayCard}>
+              <View style={styles.savedHeader}>
+                <Ionicons name="checkmark-circle" size={19} color={colors.success} />
+                <Text style={styles.todayLabel}>REGISTRADO HOJE</Text>
+              </View>
+              <EntryCard entry={todayEntry} />
+              <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowForm(true)}>
+                <Ionicons name="create-outline" size={16} color={colors.primary} />
+                <Text style={styles.secondaryText}>Editar registro de hoje</Text>
+              </TouchableOpacity>
             </View>
-            <EntryCard entry={todayEntry} />
-            <TouchableOpacity style={styles.secondaryBtn} onPress={() => setShowForm(true)}>
-              <Ionicons name="create-outline" size={16} color={colors.primary} />
-              <Text style={styles.secondaryText}>Editar registro de hoje</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.formCard}>
-            <Text style={styles.formLabel}>1. COMO VOCE ESTA?</Text>
-            <EmotionGrid selected={emotion} onSelect={setEmotion} />
+          ) : (
+            <View style={styles.formCard}>
+              <Text style={styles.formLabel}>1. COMO VOCE ESTA?</Text>
+              <EmotionGrid selected={emotion} onSelect={setEmotion} />
 
-            <Text style={[styles.formLabel, { marginTop: 24 }]}>2. O QUE ACONTECEU?</Text>
-            <TextInput
-              style={styles.textarea}
-              placeholder="Escreva livremente... (opcional)"
-              placeholderTextColor={colors.subtle}
-              value={text}
-              onChangeText={setText}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
+              <Text style={[styles.formLabel, { marginTop: 24 }]}>2. O QUE ACONTECEU?</Text>
+              <TextInput
+                style={styles.textarea}
+                placeholder="Escreva livremente... (opcional)"
+                placeholderTextColor={colors.subtle}
+                value={text}
+                onChangeText={setText}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
 
-            <Text style={[styles.formLabel, { marginTop: 8 }]}>3. PROFUNDIDADE DO DIA</Text>
-            <DimensionPicker selected={dimension} onSelect={setDimension} />
+              <Text style={[styles.formLabel, { marginTop: 8 }]}>3. PROFUNDIDADE DO DIA</Text>
+              <DimensionPicker selected={dimension} onSelect={setDimension} />
 
-            <TouchableOpacity
-              style={[styles.saveBtn, (!emotion || !dimension) && styles.saveBtnDisabled]}
-              onPress={handleSave}
-              disabled={!emotion || !dimension || saving}
-            >
-              {saving ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.saveBtnText}>Salvar e fechar o dia</Text>}
-            </TouchableOpacity>
-          </View>
-        )}
+              <TouchableOpacity
+                style={[styles.saveBtn, (!emotion || !dimension) && styles.saveBtnDisabled]}
+                onPress={handleSave}
+                disabled={!emotion || !dimension || saving}
+              >
+                {saving ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.saveBtnText}>Salvar e fechar o dia</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
 
-        {history.length > 0 ? (
-          <>
-            <Text style={[styles.eyebrow, { marginTop: 28, marginBottom: 12 }]}>HISTORICO</Text>
-            {history.slice(todayEntry ? 1 : 0).map(entry => <EntryCard key={entry.id} entry={entry} />)}
-          </>
-        ) : null}
-      </ScrollView>
+          {history.length > 0 ? (
+            <>
+              <Text style={[styles.eyebrow, { marginTop: 28, marginBottom: 12 }]}>HISTORICO</Text>
+              {history.slice(todayEntry ? 1 : 0).map(entry => <EntryCard key={entry.id} entry={entry} />)}
+            </>
+          ) : null}
+        </ScrollView>
+      ) : (
+        <GrimorioPanel />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -130,9 +152,12 @@ export default function Diary() {
 function makeStyles(theme: AppTheme) {
   const colors = theme.colors;
   return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.background },
     container: { flex: 1, backgroundColor: colors.background },
-    content: { padding: 24, paddingTop: 58, paddingBottom: 40 },
+    content: { padding: 24, paddingTop: 16, paddingBottom: 40 },
     center: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' },
+    header: { paddingHorizontal: 24, paddingTop: 58 },
+    tabBarWrap: { paddingHorizontal: 24 },
     eyebrow: { fontSize: 9, letterSpacing: 4, color: colors.primary, fontWeight: '800', marginBottom: 8 },
     headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14, marginBottom: 24 },
     title: { fontSize: 34, fontWeight: '800', color: colors.text, lineHeight: 39 },

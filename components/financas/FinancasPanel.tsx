@@ -13,11 +13,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { fmtBRL } from '@/constants/supereu';
 import { useTheme } from '@/lib/theme';
 import { useSuperEuStore } from '@/stores/superEuStore';
+import BarTrend from '@/components/shared/BarTrend';
 import type { SEFinanceEntry } from '@/types/supereu';
 
 const parseMoney = (value: string) => Number(value.replace(',', '.')) || 0;
 
-export default function FinancasModule() {
+const MONTH_LABEL = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+export default function FinancasPanel() {
   const { theme } = useTheme();
   const colors = theme.colors;
   const { finance, addFinanceEntry, updateFinanceEntry, deleteFinanceEntry } = useSuperEuStore();
@@ -29,6 +32,23 @@ export default function FinancasModule() {
     const income = finance.filter((entry) => entry.type === 'income').reduce((total, entry) => total + Math.abs(entry.amount), 0);
     const expense = finance.filter((entry) => entry.type === 'expense').reduce((total, entry) => total + Math.abs(entry.amount), 0);
     return { income, expense, balance: income - expense };
+  }, [finance]);
+
+  const monthlyTrend = useMemo(() => {
+    const withTimestamp = finance.filter((entry): entry is SEFinanceEntry & { timestamp: number } => typeof entry.timestamp === 'number');
+    const byMonth = new Map<string, number>();
+    withTimestamp.forEach((entry) => {
+      const date = new Date(entry.timestamp);
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      byMonth.set(key, (byMonth.get(key) ?? 0) + entry.amount);
+    });
+    return Array.from(byMonth.entries())
+      .sort(([a], [b]) => (a > b ? 1 : -1))
+      .slice(-6)
+      .map(([key, value]) => {
+        const [, monthIndex] = key.split('-').map(Number);
+        return { label: MONTH_LABEL[monthIndex], value };
+      });
   }, [finance]);
 
   function resetForm() {
@@ -74,6 +94,7 @@ export default function FinancasModule() {
       amount: signedAmount,
       date: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }),
       note: form.note.trim(),
+      timestamp: Date.now(),
     };
     addFinanceEntry(entry);
     resetForm();
@@ -84,9 +105,9 @@ export default function FinancasModule() {
 
   return (
     <ScrollView style={[styles.scroll, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={[styles.balanceCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+      <View style={[styles.balanceCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.balanceHeader}>
-          <View style={[styles.balanceIcon, { backgroundColor: positive ? colors.successSoft : colors.dangerSoft }]}> 
+          <View style={[styles.balanceIcon, { backgroundColor: positive ? colors.successSoft : colors.dangerSoft }]}>
             <Ionicons name={positive ? 'trending-up-outline' : 'trending-down-outline'} size={23} color={positive ? colors.success : colors.danger} />
           </View>
           <View style={styles.balanceTextWrap}>
@@ -94,7 +115,7 @@ export default function FinancasModule() {
             <Text style={[styles.balanceValue, { color: positive ? colors.success : colors.danger }]}>{fmtBRL(totals.balance)}</Text>
           </View>
         </View>
-        <Text style={[styles.balanceSub, { color: colors.muted }]}> 
+        <Text style={[styles.balanceSub, { color: colors.muted }]}>
           {positive ? 'Fluxo positivo. Continue protegendo sua margem.' : 'Fluxo negativo. Revise saídas antes de assumir novos custos.'}
         </Text>
       </View>
@@ -102,6 +123,11 @@ export default function FinancasModule() {
       <View style={styles.flowRow}>
         <FlowCard label="Entradas" value={fmtBRL(totals.income)} icon="arrow-down-circle-outline" tone="success" />
         <FlowCard label="Saídas" value={fmtBRL(totals.expense)} icon="arrow-up-circle-outline" tone="danger" />
+      </View>
+
+      <View style={[styles.trendCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.trendTitle, { color: colors.text }]}>Evolução mensal do saldo</Text>
+        <BarTrend data={monthlyTrend} />
       </View>
 
       <View style={styles.sectionHeader}>
@@ -112,8 +138,8 @@ export default function FinancasModule() {
       {finance.map((entry) => {
         const isIncome = entry.type === 'income';
         return (
-          <View key={entry.id} style={[styles.entryRow, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-            <View style={[styles.entryIcon, { backgroundColor: isIncome ? colors.successSoft : colors.dangerSoft }]}> 
+          <View key={entry.id} style={[styles.entryRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={[styles.entryIcon, { backgroundColor: isIncome ? colors.successSoft : colors.dangerSoft }]}>
               <Ionicons name={isIncome ? 'arrow-down-outline' : 'arrow-up-outline'} size={16} color={isIncome ? colors.success : colors.danger} />
             </View>
             <View style={styles.entryInfo}>
@@ -122,7 +148,7 @@ export default function FinancasModule() {
               <Text style={[styles.entryDate, { color: colors.subtle }]}>{entry.date}</Text>
             </View>
             <View style={styles.entryRight}>
-              <Text style={[styles.entryAmount, { color: isIncome ? colors.success : colors.danger }]}> 
+              <Text style={[styles.entryAmount, { color: isIncome ? colors.success : colors.danger }]}>
                 {isIncome ? '+' : '-'}{fmtBRL(entry.amount)}
               </Text>
               <View style={styles.entryActionRow}>
@@ -149,7 +175,7 @@ export default function FinancasModule() {
       })}
 
       {finance.length === 0 ? (
-        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="receipt-outline" size={26} color={colors.primary} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Sem lançamentos</Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>Registre uma entrada ou saída para enxergar o fluxo.</Text>
@@ -163,15 +189,15 @@ export default function FinancasModule() {
 
       <Modal visible={showAdd} transparent animationType="slide" onRequestClose={() => { resetForm(); setShowAdd(false); }}>
         <Pressable style={styles.overlay} onPress={() => { resetForm(); setShowAdd(false); }} />
-        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]}> 
+        <View style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: colors.text }]}>{editingEntryId ? 'Editar lançamento' : 'Novo lançamento'}</Text>
-            <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}> 
+            <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}>
               <Ionicons name="close" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.typeSegment, { backgroundColor: colors.backgroundAlt }]}> 
+          <View style={[styles.typeSegment, { backgroundColor: colors.backgroundAlt }]}>
             <TouchableOpacity
               style={[styles.typeButton, form.type === 'income' && { backgroundColor: colors.success }]}
               onPress={() => setForm((current) => ({ ...current, type: 'income' }))}
@@ -203,8 +229,8 @@ export default function FinancasModule() {
     const color = tone === 'success' ? colors.success : colors.danger;
     const soft = tone === 'success' ? colors.successSoft : colors.dangerSoft;
     return (
-      <View style={[styles.flowCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-        <View style={[styles.flowIcon, { backgroundColor: soft }]}> 
+      <View style={[styles.flowCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.flowIcon, { backgroundColor: soft }]}>
           <Ionicons name={icon} size={18} color={color} />
         </View>
         <Text style={[styles.flowLabel, { color: colors.muted }]}>{label}</Text>
@@ -229,6 +255,8 @@ const styles = StyleSheet.create({
   flowIcon: { width: 34, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   flowLabel: { fontSize: 12, fontWeight: '800', marginBottom: 5 },
   flowValue: { fontSize: 17, fontWeight: '900' },
+  trendCard: { borderRadius: 10, padding: 16, borderWidth: 1, marginBottom: 18 },
+  trendTitle: { fontSize: 14, fontWeight: '900', marginBottom: 12 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 17, fontWeight: '900' },
   sectionCount: { fontSize: 12, fontWeight: '700' },

@@ -1,4 +1,4 @@
-import { useState, type ComponentProps } from 'react';
+import { useMemo, useState, type ComponentProps } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -15,7 +15,7 @@ import { todayHermetic } from '@/constants/supereu';
 import { useTheme } from '@/lib/theme';
 import { useSuperEuStore } from '@/stores/superEuStore';
 import { getDiaryReflection } from '@/services/oracleService';
-import type { SEDiaryEntry } from '@/types/supereu';
+import { GRIMORIO_TAGS, type SEDiaryEntry } from '@/types/supereu';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -41,17 +41,27 @@ const findMood = (value: string): MoodOption =>
     icon: 'ellipse-outline',
   };
 
-export default function GrimorioModule() {
+export default function GrimorioPanel() {
   const { theme } = useTheme();
   const colors = theme.colors;
-  const { goals, habits, purchases, finance, diary, addDiaryEntry, updateDiaryEntry, updateDiaryReflection, deleteDiaryEntry } = useSuperEuStore();
+  const { habits, purchases, finance, diary, addDiaryEntry, updateDiaryEntry, updateDiaryReflection, deleteDiaryEntry } = useSuperEuStore();
   const [showAdd, setShowAdd] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
-  const [form, setForm] = useState({ mood: MOODS[0].value, text: '', tags: '' });
+  const [form, setForm] = useState({ title: '', mood: MOODS[0].value, text: '', tags: [] as string[] });
   const [loadingReflection, setLoadingReflection] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const filteredDiary = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return diary;
+    return diary.filter((entry) => {
+      const haystack = `${entry.title ?? ''} ${entry.text} ${entry.tags.join(' ')}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [diary, search]);
 
   function resetForm() {
-    setForm({ mood: MOODS[0].value, text: '', tags: '' });
+    setForm({ title: '', mood: MOODS[0].value, text: '', tags: [] });
     setEditingEntryId(null);
   }
 
@@ -61,19 +71,26 @@ export default function GrimorioModule() {
   }
 
   function openEdit(entry: SEDiaryEntry) {
-    setForm({ mood: findMood(entry.mood).value, text: entry.text, tags: entry.tags.join(', ') });
+    setForm({ title: entry.title ?? '', mood: findMood(entry.mood).value, text: entry.text, tags: entry.tags });
     setEditingEntryId(entry.id);
     setShowAdd(true);
   }
 
+  function toggleTag(tag: string) {
+    setForm((current) => ({
+      ...current,
+      tags: current.tags.includes(tag) ? current.tags.filter((t) => t !== tag) : [...current.tags, tag],
+    }));
+  }
+
   function handleSave() {
-    if (!form.text.trim() && !form.tags.trim()) return;
-    const tags = form.tags.split(',').map((tag) => tag.trim()).filter(Boolean);
+    if (!form.text.trim() && !form.title.trim()) return;
     if (editingEntryId) {
       updateDiaryEntry(editingEntryId, {
+        title: form.title.trim() || undefined,
         mood: form.mood,
         text: form.text.trim(),
-        tags,
+        tags: form.tags,
         aiReflection: undefined,
       });
       resetForm();
@@ -83,9 +100,10 @@ export default function GrimorioModule() {
     const entry: SEDiaryEntry = {
       id: Date.now().toString(),
       date: todayHermetic(),
+      title: form.title.trim() || undefined,
       mood: form.mood,
       text: form.text.trim(),
-      tags,
+      tags: form.tags,
     };
     addDiaryEntry(entry);
     resetForm();
@@ -95,31 +113,43 @@ export default function GrimorioModule() {
   async function handleReflection(entry: SEDiaryEntry) {
     setLoadingReflection(entry.id);
     const mood = findMood(entry.mood).label;
-    const reflection = await getDiaryReflection(mood, entry.text, { goals, habits, purchases, finance, diary });
+    const reflection = await getDiaryReflection(mood, entry.text, { habits, purchases, finance, diary });
     updateDiaryReflection(entry.id, reflection);
     setLoadingReflection(null);
   }
 
   return (
     <ScrollView style={[styles.scroll, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={[styles.introCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
-        <View style={[styles.introIcon, { backgroundColor: colors.primarySoft }]}> 
+      <View style={[styles.introCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <View style={[styles.introIcon, { backgroundColor: colors.primarySoft }]}>
           <Ionicons name="book-outline" size={23} color={colors.primary} />
         </View>
         <View style={styles.introTextWrap}>
-          <Text style={[styles.introTitle, { color: colors.text }]}>Grimório interno</Text>
+          <Text style={[styles.introTitle, { color: colors.text }]}>Grimório</Text>
           <Text style={[styles.introSub, { color: colors.muted }]}>Registre percepções, padrões e sinais que você quer lembrar.</Text>
         </View>
       </View>
 
-      {diary.map((entry) => {
+      <View style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Ionicons name="search-outline" size={16} color={colors.subtle} />
+        <TextInput
+          style={[styles.searchInput, { color: colors.text }]}
+          placeholder="Buscar por palavra-chave..."
+          placeholderTextColor={colors.subtle}
+          value={search}
+          onChangeText={setSearch}
+        />
+      </View>
+
+      {filteredDiary.map((entry) => {
         const mood = findMood(entry.mood);
         return (
-          <View key={entry.id} style={[styles.entryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+          <View key={entry.id} style={[styles.entryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <View style={styles.entryHeader}>
               <View style={styles.entryDateWrap}>
+                {entry.title ? <Text style={[styles.entryTitle, { color: colors.text }]}>{entry.title}</Text> : null}
                 <Text style={[styles.entryDate, { color: colors.muted }]}>{entry.date}</Text>
-                <View style={[styles.moodPill, { backgroundColor: colors.accentSoft }]}> 
+                <View style={[styles.moodPill, { backgroundColor: colors.accentSoft }]}>
                   <Ionicons name={mood.icon} size={14} color={colors.accent} />
                   <Text style={[styles.moodPillText, { color: colors.accent }]}>{mood.label}</Text>
                 </View>
@@ -149,7 +179,7 @@ export default function GrimorioModule() {
             {entry.tags.length > 0 ? (
               <View style={styles.tagsRow}>
                 {entry.tags.map((tag) => (
-                  <View key={tag} style={[styles.tag, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}> 
+                  <View key={tag} style={[styles.tag, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}>
                     <Text style={[styles.tagText, { color: colors.muted }]}>#{tag}</Text>
                   </View>
                 ))}
@@ -157,7 +187,7 @@ export default function GrimorioModule() {
             ) : null}
 
             {entry.aiReflection ? (
-              <View style={[styles.reflectionCard, { backgroundColor: colors.backgroundAlt, borderColor: colors.primary }]}> 
+              <View style={[styles.reflectionCard, { backgroundColor: colors.backgroundAlt, borderColor: colors.primary }]}>
                 <View style={styles.reflectionHeader}>
                   <Ionicons name="sparkles-outline" size={15} color={colors.primary} />
                   <Text style={[styles.reflectionLabel, { color: colors.primary }]}>Reflexão do Oráculo</Text>
@@ -184,11 +214,11 @@ export default function GrimorioModule() {
         );
       })}
 
-      {diary.length === 0 ? (
-        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+      {filteredDiary.length === 0 ? (
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="journal-outline" size={28} color={colors.primary} />
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Nenhum registro ainda</Text>
-          <Text style={[styles.emptyText, { color: colors.muted }]}>Comece com uma frase simples sobre como você está hoje.</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{diary.length === 0 ? 'Nenhum registro ainda' : 'Nada encontrado'}</Text>
+          <Text style={[styles.emptyText, { color: colors.muted }]}>{diary.length === 0 ? 'Comece com uma frase simples sobre como você está hoje.' : 'Tente outra palavra-chave.'}</Text>
         </View>
       ) : null}
 
@@ -202,10 +232,18 @@ export default function GrimorioModule() {
         <ScrollView style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]} keyboardShouldPersistTaps="handled">
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: colors.text }]}>{editingEntryId ? 'Editar entrada' : 'Nova entrada'}</Text>
-            <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}> 
+            <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}>
               <Ionicons name="close" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
+
+          <TextInput
+            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
+            placeholder="Título (opcional)"
+            placeholderTextColor={colors.subtle}
+            value={form.title}
+            onChangeText={(title) => setForm((current) => ({ ...current, title }))}
+          />
 
           <Text style={[styles.fieldLabel, { color: colors.muted }]}>Estado de hoje</Text>
           <View style={styles.moodGrid}>
@@ -237,15 +275,25 @@ export default function GrimorioModule() {
             numberOfLines={5}
             textAlignVertical="top"
           />
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.text }]}
-            placeholder="Tags separadas por virgula"
-            placeholderTextColor={colors.subtle}
-            value={form.tags}
-            onChangeText={(tags) => setForm((current) => ({ ...current, tags }))}
-          />
+
+          <Text style={[styles.fieldLabel, { color: colors.muted }]}>Tags</Text>
+          <View style={styles.tagPickerRow}>
+            {GRIMORIO_TAGS.map((tag) => {
+              const active = form.tags.includes(tag);
+              return (
+                <TouchableOpacity
+                  key={tag}
+                  onPress={() => toggleTag(tag)}
+                  style={[styles.tagChip, { backgroundColor: active ? colors.accentSoft : colors.surface, borderColor: active ? colors.accent : colors.border }]}
+                >
+                  <Text style={[styles.tagChipText, { color: active ? colors.accent : colors.muted }]}>#{tag}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           <TouchableOpacity style={[styles.submitButton, { backgroundColor: colors.primary }]} onPress={handleSave}>
-            <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>{editingEntryId ? 'Salvar alteracoes' : 'Salvar entrada'}</Text>
+            <Text style={[styles.submitButtonText, { color: colors.primaryText }]}>{editingEntryId ? 'Salvar alterações' : 'Salvar entrada'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </Modal>
@@ -261,9 +309,12 @@ const styles = StyleSheet.create({
   introTextWrap: { flex: 1 },
   introTitle: { fontSize: 18, fontWeight: '900', marginBottom: 4 },
   introSub: { fontSize: 13, lineHeight: 19 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, marginBottom: 14 },
+  searchInput: { flex: 1, paddingVertical: 12, fontSize: 14 },
   entryCard: { borderRadius: 10, padding: 16, borderWidth: 1, marginBottom: 12 },
   entryHeader: { flexDirection: 'row', gap: 10, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   entryDateWrap: { flex: 1, gap: 8 },
+  entryTitle: { fontSize: 15, fontWeight: '900' },
   entryDate: { fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
   moodPill: { alignSelf: 'flex-start', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
   moodPillText: { fontSize: 12, fontWeight: '900' },
@@ -295,6 +346,9 @@ const styles = StyleSheet.create({
   moodButtonText: { fontSize: 12, fontWeight: '900' },
   input: { borderRadius: 10, borderWidth: 1, padding: 14, fontSize: 15, marginBottom: 12 },
   textArea: { minHeight: 116 },
+  tagPickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  tagChip: { borderRadius: 100, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
+  tagChipText: { fontSize: 12, fontWeight: '800' },
   submitButton: { borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 2, marginBottom: 22 },
   submitButtonText: { fontSize: 14, fontWeight: '900' },
 });

@@ -1,6 +1,6 @@
 import { ORACLE_PHRASES } from '@/constants/supereu';
 import { useSuperEuStore } from '@/stores/superEuStore';
-import type { OraclePhrase, SEFinanceEntry, SEGoal, SEHabit, SEPurchase, SEDiaryEntry } from '@/types/supereu';
+import type { OraclePhrase, SEFinanceEntry, SEHabit, SEPurchase, SEDiaryEntry } from '@/types/supereu';
 import { Platform } from 'react-native';
 
 const QWEN_API_KEY = process.env.EXPO_PUBLIC_QWEN_API_KEY ?? '';
@@ -10,7 +10,6 @@ const QWEN_MODEL = process.env.EXPO_PUBLIC_QWEN_MODEL ?? 'qwen/qwen3-14b:free';
 const CLAUDE_PROXY_URL = process.env.EXPO_PUBLIC_CLAUDE_PROXY_URL ?? '/api/claude';
 
 type UserContext = {
-  goals: SEGoal[];
   habits: SEHabit[];
   purchases: SEPurchase[];
   finance: SEFinanceEntry[];
@@ -60,10 +59,10 @@ function getMockOracle(context?: UserContext, seed = new Date().toISOString()): 
       action: `Complete 1 ritual simples e volte para marcar no painel. Hoje você está em ${variables.completedToday}/${variables.totalHabits}.`,
     },
     {
-      quote: `Sua obra está em ${variables.averageGoalProgress}%. Não force o portal inteiro: empurre a próxima dobradiça.`,
+      quote: `Sua consistência atual é ${variables.completedToday}/${variables.totalHabits}. Não force o portal inteiro: empurre a próxima dobradiça.`,
       principle: 'Solve et Coagula',
-      focus: 'Mover um objetivo 5%',
-      action: 'Escolha um objetivo, defina uma tarefa de 15 minutos e use o +5 apenas depois de executar.',
+      focus: 'Sustentar um ritual',
+      action: 'Escolha um ritual, defina o horário exato e cumpra antes de abrir qualquer outra tela.',
     },
     {
       quote: `O fluxo material mostra ${balanceTone}. Dinheiro também é energia: observe para onde ele está obedecendo.`,
@@ -111,9 +110,6 @@ function getTodayHabitIndex() {
 function compactContext(context: UserContext) {
   const todayIndex = getTodayHabitIndex();
   const completedToday = context.habits.filter((habit) => habit.days[todayIndex]).length;
-  const averageGoalProgress = context.goals.length
-    ? Math.round(context.goals.reduce((total, goal) => total + goal.progress, 0) / context.goals.length)
-    : 0;
   const pendingPurchases = context.purchases.filter((purchase) => !purchase.done);
   const balance = context.finance.reduce((total, entry) => total + entry.amount, 0);
   const latestDiary = context.diary.slice(0, 3).map((entry) => ({
@@ -129,11 +125,6 @@ function compactContext(context: UserContext) {
       total: context.habits.length,
       completedToday,
       items: context.habits.map((habit) => ({ name: habit.name, doneToday: habit.days[todayIndex], week: habit.days.filter(Boolean).length })),
-    },
-    goals: {
-      total: context.goals.length,
-      averageGoalProgress,
-      items: context.goals.map((goal) => ({ title: goal.title, category: goal.category, progress: goal.progress, deadline: goal.deadline })),
     },
     plan: {
       pending: pendingPurchases.map((item) => ({ name: item.name, why: item.why, min: item.min, max: item.max, phase: item.phase })),
@@ -156,7 +147,6 @@ function buildUserVariables(context?: UserContext) {
     return {
       completedToday: 0,
       totalHabits: 0,
-      averageGoalProgress: 0,
       balance: 0,
       pendingPurchases: 0,
       latestDiaryMood: 'sem registro',
@@ -164,14 +154,10 @@ function buildUserVariables(context?: UserContext) {
   }
   const todayIndex = getTodayHabitIndex();
   const completedToday = context.habits.filter((habit) => habit.days[todayIndex]).length;
-  const averageGoalProgress = context.goals.length
-    ? Math.round(context.goals.reduce((total, goal) => total + goal.progress, 0) / context.goals.length)
-    : 0;
   const balance = context.finance.reduce((total, entry) => total + entry.amount, 0);
   return {
     completedToday,
     totalHabits: context.habits.length,
-    averageGoalProgress,
     balance,
     pendingPurchases: context.purchases.filter((purchase) => !purchase.done).length,
     latestDiaryMood: context.diary[0]?.mood ?? 'sem registro',
@@ -428,7 +414,6 @@ Use as variáveis reais do usuário para gerar um foco personalizado para hoje.
 
 Variaveis resumidas:
 - rituais_hoje: ${variables.completedToday}/${variables.totalHabits}
-- progresso_medio_objetivos: ${variables.averageGoalProgress}%
 - saldo_financeiro: R$ ${variables.balance.toLocaleString('pt-BR')}
 - compras_pendentes: ${variables.pendingPurchases}
 - ultimo_estado_grimorio: ${variables.latestDiaryMood}
@@ -453,39 +438,10 @@ Sem markdown, sem texto extra. Tom: sábio, esotérico, preciso e não genérico
   return getFallbackOracle(todayKey);
 }
 
-export async function getGoalInsight(goal: SEGoal, context?: UserContext): Promise<string> {
-  if (!isPaidAiEnabled()) {
-    const variables = buildUserVariables(context);
-    return `Seu objetivo "${goal.title}" está em ${goal.progress}%, então o melhor movimento agora é pequeno e verificável. Ações: 1) escolha uma tarefa de 15 minutos ligada a esse objetivo; 2) conclua antes de mexer em outro plano. Seus rituais hoje estão em ${variables.completedToday}/${variables.totalHabits}, então use um ritual como gatilho de foco. Frase: a obra cresce quando a vontade vira gesto.`;
-  }
-
-  const prompt = `Você é o Mentor SouMente analisando um objetivo específico.
-
-Objetivo em foco:
-- título: ${goal.title}
-- categoria: ${goal.category}
-- progresso: ${goal.progress}%
-- deadline: ${goal.deadline}
-- prioridade: ${goal.priority}
-
-${getContextBlock(context)}
-
-Gere um insight em português com:
-1) leitura objetiva do estado atual
-2) 2 próximas ações concretas
-3) uma frase meditativa hermética curta
-
-Use rituais, finanças, plano e grimório apenas quando forem relevantes.
-Max 120 palavras.`;
-
-  const text = await callBestModel(prompt, 220);
-  return text ?? 'Consulte sua intuição: o próximo passo já está tentando ficar visível.';
-}
-
 export async function getDiaryReflection(mood: string, text: string, context?: UserContext): Promise<string> {
   if (!isPaidAiEnabled()) {
     const variables = buildUserVariables(context);
-    return `O estado "${mood}" aparece como matéria-prima, não como sentença. Pela Lei da Correspondência, o que você escreveu conversa com seu momento: ${variables.completedToday}/${variables.totalHabits} rituais hoje e objetivos em ${variables.averageGoalProgress}% de média. Transmutação possível: escolha um gesto físico simples agora e registre o que mudou depois dele.`;
+    return `O estado "${mood}" aparece como matéria-prima, não como sentença. Pela Lei da Correspondência, o que você escreveu conversa com seu momento: ${variables.completedToday}/${variables.totalHabits} rituais hoje. Transmutação possível: escolha um gesto físico simples agora e registre o que mudou depois dele.`;
   }
 
   const prompt = `Você é um oráculo hermético-kabbalistic. O usuário registrou:
@@ -509,7 +465,7 @@ Responda em português. Tom: sábio, não clínico. Max 100 palavras.`;
 export async function askSouMenteMentor(question: string, context: UserContext, history: ChatMessage[] = []): Promise<string> {
   if (!isPaidAiEnabled()) {
     const variables = buildUserVariables(context);
-    return `Modo mock ativado. Lendo seu mapa local: ${variables.completedToday}/${variables.totalHabits} rituais hoje, objetivos em ${variables.averageGoalProgress}% e saldo de R$ ${variables.balance.toLocaleString('pt-BR')}. Para sua pergunta "${question}", eu escolheria o menor passo que gere evidência hoje. Ação de 24h: conclua um ritual e avance +5 em um objetivo ligado a ele.`;
+    return `Modo mock ativado. Lendo seu mapa local: ${variables.completedToday}/${variables.totalHabits} rituais hoje e saldo de R$ ${variables.balance.toLocaleString('pt-BR')}. Para sua pergunta "${question}", eu escolheria o menor passo que gere evidência hoje. Ação de 24h: conclua um ritual e registre o que mudou.`;
   }
 
   const system = `Você é o Mentor SouMente, um bot de autoconsciência prática.
@@ -541,12 +497,9 @@ Regras:
   const claude = await callClaude(fallbackPrompt, 520);
   if (claude) return claude;
 
-  const averageGoalProgress = context.goals.length
-    ? Math.round(context.goals.reduce((total, goal) => total + goal.progress, 0) / context.goals.length)
-    : 0;
   const todayIndex = getTodayHabitIndex();
   const completedToday = context.habits.filter((habit) => habit.days[todayIndex]).length;
   const balance = context.finance.reduce((total, entry) => total + entry.amount, 0);
 
-  return `Ainda estou sem conexão com o modelo, mas consigo ler seu mapa local: hoje você marcou ${completedToday}/${context.habits.length} rituais, seus objetivos estão em média com ${averageGoalProgress}% e seu saldo está em R$ ${balance.toLocaleString('pt-BR')}. A magia agora é simples: escolha um objetivo e mova apenas 5% hoje. Ação de 24h: registre uma microtarefa concreta e marque quando concluir.`;
+  return `Ainda estou sem conexão com o modelo, mas consigo ler seu mapa local: hoje você marcou ${completedToday}/${context.habits.length} rituais e seu saldo está em R$ ${balance.toLocaleString('pt-BR')}. A magia agora é simples: escolha um ritual e cumpra com presença total. Ação de 24h: registre uma microtarefa concreta e marque quando concluir.`;
 }

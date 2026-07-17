@@ -35,3 +35,23 @@ export async function scheduleDailyNotification(hour: number, minute: number): P
     },
   });
 }
+
+export async function scheduleRitualNotification(habitId: string, hour: number, minute: number, habitName: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(`ritual-${habitId}`).catch(() => {});
+  await Notifications.scheduleNotificationAsync({
+    identifier: `ritual-${habitId}`,
+    content: {
+      title: 'Ritual',
+      body: `Hora de: ${habitName}`,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    },
+  });
+}
+
+export async function cancelRitualNotification(habitId: string): Promise<void> {
+  await Notifications.cancelScheduledNotificationAsync(`ritual-${habitId}`).catch(() => {});
+}

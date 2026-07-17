@@ -1,47 +1,29 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  DEFAULT_HABITS, DEFAULT_GOALS, DEFAULT_PURCHASES, DEFAULT_FINANCE,
+  DEFAULT_HABITS, DEFAULT_PURCHASES, DEFAULT_FINANCE,
 } from '@/constants/supereu';
 import type {
-  SEHabit, SEGoal, SEPurchase, SEFinanceEntry, SEDiaryEntry, OraclePhrase, SuperEuModule,
+  SEHabit, SEPurchase, SEFinanceEntry, SEDiaryEntry, OraclePhrase,
 } from '@/types/supereu';
 
 const STORE_KEY = 'super-eu-store';
-const DEFAULT_VISIBLE_MODULES: SuperEuModule[] = [
-  'oracle',
-  'mentor',
-  'padroes',
-  'rituais',
-  'objetivos',
-  'plano',
-  'financas',
-  'grimorio',
-];
 const DEFAULT_PAID_AI_ENABLED = process.env.EXPO_PUBLIC_USE_MOCK_AI === 'false';
 
 interface SuperEuState {
   habits: SEHabit[];
-  goals: SEGoal[];
   purchases: SEPurchase[];
   finance: SEFinanceEntry[];
   diary: SEDiaryEntry[];
   oracle: OraclePhrase | null;
   oracleDateKey: string; // YYYY-MM-DD
-  visibleModules: SuperEuModule[];
   paidAiEnabled: boolean;
 
   // Habits
   toggleHabitDay: (habitId: string, dayIndex: number) => void;
   addHabit: (habit: SEHabit) => void;
-  updateHabit: (habitId: string, patch: Partial<Pick<SEHabit, 'icon' | 'name'>>) => void;
+  updateHabit: (habitId: string, patch: Partial<Pick<SEHabit, 'icon' | 'name' | 'category' | 'time'>>) => void;
   deleteHabit: (habitId: string) => void;
-
-  // Goals
-  addGoal: (goal: SEGoal) => void;
-  updateGoal: (goalId: string, patch: Partial<SEGoal>) => void;
-  updateGoalProgress: (goalId: string, delta: number) => void;
-  deleteGoal: (goalId: string) => void;
 
   // Purchases
   togglePurchase: (purchaseId: string) => void;
@@ -64,26 +46,22 @@ interface SuperEuState {
   setOracle: (oracle: OraclePhrase, dateKey: string) => void;
 
   // Preferences
-  toggleModuleVisibility: (module: SuperEuModule) => void;
-  resetVisibleModules: () => void;
   setPaidAiEnabled: (enabled: boolean) => void;
   togglePaidAi: () => void;
 }
 
 type SuperEuSnapshot = Pick<
   SuperEuState,
-  'habits' | 'goals' | 'purchases' | 'finance' | 'diary' | 'oracle' | 'oracleDateKey' | 'visibleModules' | 'paidAiEnabled'
+  'habits' | 'purchases' | 'finance' | 'diary' | 'oracle' | 'oracleDateKey' | 'paidAiEnabled'
 >;
 
 const createSnapshot = (state: SuperEuState): SuperEuSnapshot => ({
   habits: state.habits,
-  goals: state.goals,
   purchases: state.purchases,
   finance: state.finance,
   diary: state.diary,
   oracle: state.oracle,
   oracleDateKey: state.oracleDateKey,
-  visibleModules: state.visibleModules,
   paidAiEnabled: state.paidAiEnabled,
 });
 
@@ -103,13 +81,11 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
 
   return {
     habits: DEFAULT_HABITS,
-    goals: DEFAULT_GOALS,
     purchases: DEFAULT_PURCHASES,
     finance: DEFAULT_FINANCE,
     diary: [],
     oracle: null,
     oracleDateKey: '',
-    visibleModules: DEFAULT_VISIBLE_MODULES,
     paidAiEnabled: DEFAULT_PAID_AI_ENABLED,
 
     toggleHabitDay: (habitId, dayIndex) =>
@@ -130,22 +106,6 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
       })),
     deleteHabit: (habitId) =>
       setAndPersist((s) => ({ habits: s.habits.filter((h) => h.id !== habitId) })),
-
-    addGoal: (goal) => setAndPersist((s) => ({ goals: [...s.goals, goal] })),
-    updateGoal: (goalId, patch) =>
-      setAndPersist((s) => ({
-        goals: s.goals.map((g) => (g.id === goalId ? { ...g, ...patch } : g)),
-      })),
-    updateGoalProgress: (goalId, delta) =>
-      setAndPersist((s) => ({
-        goals: s.goals.map((g) =>
-          g.id === goalId
-            ? { ...g, progress: Math.min(100, Math.max(0, g.progress + delta)) }
-            : g
-        ),
-      })),
-    deleteGoal: (goalId) =>
-      setAndPersist((s) => ({ goals: s.goals.filter((g) => g.id !== goalId) })),
 
     togglePurchase: (purchaseId) =>
       setAndPersist((s) => ({
@@ -188,17 +148,6 @@ export const useSuperEuStore = create<SuperEuState>((set, get) => {
 
     setOracle: (oracle, dateKey) => setAndPersist({ oracle, oracleDateKey: dateKey }),
 
-    toggleModuleVisibility: (module) =>
-      setAndPersist((s) => {
-        const isVisible = s.visibleModules.includes(module);
-        if (isVisible && s.visibleModules.length === 1) return {};
-        return {
-          visibleModules: isVisible
-            ? s.visibleModules.filter((item) => item !== module)
-            : DEFAULT_VISIBLE_MODULES.filter((item) => item === module || s.visibleModules.includes(item)),
-        };
-      }),
-    resetVisibleModules: () => setAndPersist({ visibleModules: DEFAULT_VISIBLE_MODULES }),
     setPaidAiEnabled: (enabled) => setAndPersist({ paidAiEnabled: enabled }),
     togglePaidAi: () => setAndPersist((s) => ({ paidAiEnabled: !s.paidAiEnabled })),
   };
@@ -211,16 +160,12 @@ const hydrateSuperEuStore = async () => {
 
     const snapshot = JSON.parse(raw) as Partial<SuperEuSnapshot>;
     useSuperEuStore.setState({
-      habits: snapshot.habits ?? DEFAULT_HABITS,
-      goals: snapshot.goals ?? DEFAULT_GOALS,
+      habits: (snapshot.habits ?? DEFAULT_HABITS).map((h) => ({ ...h, category: h.category ?? 'manha' })),
       purchases: snapshot.purchases ?? DEFAULT_PURCHASES,
       finance: snapshot.finance ?? DEFAULT_FINANCE,
       diary: snapshot.diary ?? [],
       oracle: snapshot.oracle ?? null,
       oracleDateKey: snapshot.oracleDateKey ?? '',
-      visibleModules: snapshot.visibleModules?.length
-        ? DEFAULT_VISIBLE_MODULES.filter((module) => snapshot.visibleModules?.includes(module))
-        : DEFAULT_VISIBLE_MODULES,
       paidAiEnabled: snapshot.paidAiEnabled ?? DEFAULT_PAID_AI_ENABLED,
     });
   } catch (error) {

@@ -1,4 +1,4 @@
-import type { SEHabit, SEGoal, SEPurchase, SEFinanceEntry, OraclePhrase, SuperEuModule } from '@/types/supereu';
+import type { SEHabit, SEPurchase, SEFinanceEntry, OraclePhrase } from '@/types/supereu';
 
 // Paleta visual do Super Eu.
 export const SE = {
@@ -30,17 +30,6 @@ export const SE_FONTS = {
   mono: 'DMMono_400Regular',
 } as const;
 
-export const SE_TABS: { id: SuperEuModule; label: string; symbol: string }[] = [
-  { id: 'oracle', label: 'Oráculo', symbol: '◆' },
-  { id: 'mentor', label: 'Mentor', symbol: 'AI' },
-  { id: 'padroes', label: 'Padrões', symbol: 'MAP' },
-  { id: 'rituais', label: 'Rituais', symbol: '🔥' },
-  { id: 'objetivos', label: 'Objetivos', symbol: '◇' },
-  { id: 'plano', label: 'Plano', symbol: '△' },
-  { id: 'financas', label: 'Finanças', symbol: '$' },
-  { id: 'grimorio', label: 'Grimório', symbol: '📖' },
-];
-
 export const ORACLE_PHRASES: OraclePhrase[] = [
   { quote: 'O que resiste persiste. O que você evita te ensina.', principle: 'Lei da Polaridade · Hermetismo' },
   { quote: 'Cada ação que você toma agora é a oração do futuro que você quer.', principle: 'Lei da Causalidade · Kybalion' },
@@ -64,18 +53,12 @@ export const SE_MOODS = [
 ];
 
 export const DEFAULT_HABITS: SEHabit[] = [
-  { id: '1', icon: '🧘', name: 'Meditação', streak: 0, days: [false, false, false, false, false, false, false] },
-  { id: '2', icon: '📖', name: 'Journaling', streak: 0, days: [false, false, false, false, false, false, false] },
-  { id: '3', icon: '🚿', name: 'Banho frio', streak: 0, days: [false, false, false, false, false, false, false] },
-  { id: '4', icon: '💪', name: 'Academia', streak: 0, days: [false, false, false, false, false, false, false] },
-  { id: '5', icon: '📚', name: 'Estudo', streak: 0, days: [false, false, false, false, false, false, false] },
-  { id: '6', icon: '💻', name: 'Programação', streak: 0, days: [false, false, false, false, false, false, false] },
-];
-
-export const DEFAULT_GOALS: SEGoal[] = [
-  { id: '1', title: 'Lançar SouMente v1', category: 'Produto', deadline: '2026-08-01', progress: 40, priority: 'high' },
-  { id: '2', title: 'Cliente internacional', category: 'Negócio', deadline: '2026-09-30', progress: 15, priority: 'medium' },
-  { id: '3', title: 'Academia 3x semana', category: 'Corpo', deadline: '2026-12-31', progress: 60, priority: 'medium' },
+  { id: '1', icon: '🧘', name: 'Meditação', streak: 0, days: [false, false, false, false, false, false, false], category: 'manha' },
+  { id: '3', icon: '🚿', name: 'Banho frio', streak: 0, days: [false, false, false, false, false, false, false], category: 'manha' },
+  { id: '4', icon: '💪', name: 'Academia', streak: 0, days: [false, false, false, false, false, false, false], category: 'tarde' },
+  { id: '5', icon: '📚', name: 'Estudo', streak: 0, days: [false, false, false, false, false, false, false], category: 'tarde' },
+  { id: '2', icon: '📖', name: 'Journaling', streak: 0, days: [false, false, false, false, false, false, false], category: 'noite' },
+  { id: '6', icon: '💻', name: 'Programação', streak: 0, days: [false, false, false, false, false, false, false], category: 'noite' },
 ];
 
 export const DEFAULT_PURCHASES: SEPurchase[] = [

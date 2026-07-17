@@ -10,10 +10,13 @@ import { useSeed } from '@/hooks/useSeed';
 import { useDiary } from '@/hooks/useDiary';
 import { EMOTIONS } from '@/constants/emotions';
 import { useSuperEuStore } from '@/stores/superEuStore';
+import { useTreinoStore } from '@/stores/treinoStore';
 import { fetchDailyOracle } from '@/services/oracleService';
 import { getGrowthProfile, getWeeklyIntention, type GrowthProfile } from '@/services/growthService';
 import { getCurrentUser } from '@/services/authService';
 import { fmtBRL } from '@/constants/supereu';
+import { MUSCLE_GROUP_LABEL } from '@/constants/treino';
+import OracleModal from '@/components/oracle/OracleModal';
 import { useTheme, type AppTheme } from '@/lib/theme';
 
 function getTodayIndex() {
@@ -38,18 +41,20 @@ export default function Home() {
   const { todayEntry, streak, loading: diaryLoading, refetch: refetchDiary } = useDiary();
   const [growth, setGrowth] = useState<GrowthProfile | null>(null);
   const [weeklyIntention, setWeeklyIntention] = useState('');
+  const [oracleModalVisible, setOracleModalVisible] = useState(false);
   const {
     oracle, oracleDateKey, setOracle,
-    habits, goals, purchases, finance, diary,
+    habits, purchases, finance, diary,
   } = useSuperEuStore();
+  const { sessions: treinoSessions } = useTreinoStore();
 
   const todayKey = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (oracleDateKey !== todayKey) {
-      fetchDailyOracle({ goals, habits, purchases, finance, diary }).then((result) => setOracle(result, todayKey));
+      fetchDailyOracle({ habits, purchases, finance, diary }).then((result) => setOracle(result, todayKey));
     }
-  }, [diary, finance, goals, habits, oracleDateKey, purchases, setOracle, todayKey]);
+  }, [diary, finance, habits, oracleDateKey, purchases, setOracle, todayKey]);
 
   useFocusEffect(useCallback(() => {
     refetchSeed();
@@ -74,9 +79,10 @@ export default function Home() {
   const todayIndex = getTodayIndex();
   const completedHabitsToday = habits.filter(habit => habit.days[todayIndex]).length;
   const ritualsPct = habits.length ? Math.round((completedHabitsToday / habits.length) * 100) : 0;
-  const avgGoalProgress = goals.length
-    ? Math.round(goals.reduce((acc, goal) => acc + goal.progress, 0) / goals.length)
-    : 0;
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const treinoThisWeek = treinoSessions.filter(session => new Date(session.date).getTime() >= weekAgo).length;
+  const treinoPct = Math.min(100, treinoThisWeek * 25);
+  const lastTreino = treinoSessions[0];
   const planDone = purchases.filter(purchase => purchase.done).length;
   const planPct = purchases.length ? Math.round((planDone / purchases.length) * 100) : 0;
   const balance = finance.reduce((acc, entry) => acc + entry.amount, 0);
@@ -105,12 +111,12 @@ export default function Home() {
       {oracle && (
         <TouchableOpacity
           style={styles.oracleCard}
-          onPress={() => router.push('/(tabs)/super-eu')}
+          onPress={() => setOracleModalVisible(true)}
           activeOpacity={0.86}
         >
           <View style={styles.cardHeader}>
             <View style={styles.goldDot} />
-            <Text style={styles.oracleTag}>SUPER EU · ORÁCULO</Text>
+            <Text style={styles.oracleTag}>ORÁCULO</Text>
           </View>
           <Text style={styles.oracleQuote}>"{oracle.quote}"</Text>
           <Text style={styles.oraclePrinciple}>{oracle.principle}</Text>
@@ -118,14 +124,16 @@ export default function Home() {
         </TouchableOpacity>
       )}
 
+      <OracleModal visible={oracleModalVisible} onClose={() => setOracleModalVisible(false)} />
+
       <View style={styles.mirrorGrid}>
-        <MetricCard title="Rituais hoje" value={`${completedHabitsToday}/${habits.length}`} pct={ritualsPct} theme={theme} />
-        <MetricCard title="Grande obra" value={`${avgGoalProgress}%`} pct={avgGoalProgress} theme={theme} />
+        <MetricCard title="Rituais hoje" value={`${completedHabitsToday}/${habits.length}`} pct={ritualsPct} theme={theme} onPress={() => router.push('/(tabs)/rituais')} />
+        <MetricCard title="Treino" value={lastTreino ? MUSCLE_GROUP_LABEL[lastTreino.group] : '—'} pct={treinoPct} theme={theme} onPress={() => router.push('/(tabs)/treino')} />
       </View>
 
       <View style={styles.mirrorGrid}>
-        <MetricCard title="Plano material" value={`${planPct}%`} pct={planPct} theme={theme} variant="accent" />
-        <TouchableOpacity style={styles.mirrorCard} onPress={() => router.push('/(tabs)/super-eu')}>
+        <MetricCard title="Plano material" value={`${planPct}%`} pct={planPct} theme={theme} variant="accent" onPress={() => router.push('/(tabs)/financas')} />
+        <TouchableOpacity style={styles.mirrorCard} onPress={() => router.push('/(tabs)/financas')}>
           <Text style={[styles.mirrorValue, balance < 0 && { color: colors.danger }]}>{fmtBRL(balance)}</Text>
           <Text style={styles.mirrorLabel}>Fluxo atual</Text>
           <Text style={styles.mirrorHint}>{balance >= 0 ? 'Fluxo em expansão' : 'Ajuste de rota'}</Text>
@@ -216,12 +224,12 @@ export default function Home() {
   );
 }
 
-function MetricCard({ title, value, pct, theme, variant }: { title: string; value: string; pct: number; theme: AppTheme; variant?: 'accent' }) {
+function MetricCard({ title, value, pct, theme, variant, onPress }: { title: string; value: string; pct: number; theme: AppTheme; variant?: 'accent'; onPress: () => void }) {
   const styles = makeStyles(theme);
   const colors = theme.colors;
 
   return (
-    <TouchableOpacity style={styles.mirrorCard} onPress={() => router.push('/(tabs)/super-eu')}>
+    <TouchableOpacity style={styles.mirrorCard} onPress={onPress}>
       <Text style={styles.mirrorValue}>{value}</Text>
       <Text style={styles.mirrorLabel}>{title}</Text>
       <View style={styles.track}>

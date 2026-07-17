@@ -17,7 +17,6 @@ import { getCurrentUser, signOut } from '@/services/authService';
 import { getGrowthProfile, type GrowthProfile } from '@/services/growthService';
 import { DEV_AUTH_ENABLED } from '@/lib/devAuth';
 import { useTheme, type AppTheme } from '@/lib/theme';
-import { SE_TABS } from '@/constants/supereu';
 import { useSuperEuStore } from '@/stores/superEuStore';
 import { testPaidAiConnection } from '@/services/oracleService';
 
@@ -27,9 +26,6 @@ export default function Profile() {
   const colors = theme.colors;
   const { profile } = useAuth();
   const { streak } = useDiary();
-  const visibleModules = useSuperEuStore((state) => state.visibleModules);
-  const toggleModuleVisibility = useSuperEuStore((state) => state.toggleModuleVisibility);
-  const resetVisibleModules = useSuperEuStore((state) => state.resetVisibleModules);
   const paidAiEnabled = useSuperEuStore((state) => state.paidAiEnabled);
   const setPaidAiEnabled = useSuperEuStore((state) => state.setPaidAiEnabled);
   const [growth, setGrowth] = useState<GrowthProfile | null>(null);
@@ -178,39 +174,6 @@ export default function Profile() {
         </View>
       </View>
 
-      <Text style={styles.sectionLabel}>ABAS DO SUPER EU</Text>
-      <View style={styles.settingsCard}>
-        {SE_TABS.map((tab, index) => {
-          const isVisible = visibleModules.includes(tab.id);
-          const isLastVisible = isVisible && visibleModules.length === 1;
-          return (
-            <View key={tab.id} style={[styles.settingRow, index > 0 && styles.rowBorder]}>
-              <View style={styles.settingLeft}>
-                <Ionicons name={isVisible ? 'eye-outline' : 'eye-off-outline'} size={20} color={isVisible ? colors.primary : colors.subtle} />
-                <View>
-                  <Text style={styles.settingLabel}>{tab.label}</Text>
-                  <Text style={styles.settingHint}>{isVisible ? 'Aparece na barra do Super Eu.' : 'Oculta da barra do Super Eu.'}</Text>
-                </View>
-              </View>
-              <Switch
-                value={isVisible}
-                onValueChange={() => toggleModuleVisibility(tab.id)}
-                disabled={isLastVisible}
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={isVisible ? colors.primaryText : colors.surfaceElevated}
-              />
-            </View>
-          );
-        })}
-        <TouchableOpacity style={[styles.settingRow, styles.rowBorder]} onPress={resetVisibleModules}>
-          <View style={styles.settingLeft}>
-            <Ionicons name="refresh-outline" size={20} color={colors.accent} />
-            <Text style={styles.settingLabel}>Mostrar todas novamente</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
-        </TouchableOpacity>
-      </View>
-
       <Text style={styles.sectionLabel}>RITMO</Text>
       <View style={styles.settingsCard}>
         <View style={styles.settingRow}>
@@ -260,7 +223,7 @@ export default function Profile() {
         <View style={[styles.aiInfoBox, { backgroundColor: colors.backgroundAlt, borderColor: colors.border }]}>
           <Text style={[styles.aiInfoTitle, { color: colors.text }]}>Funcionalidades afetadas</Text>
           <Text style={[styles.aiInfoText, { color: colors.muted }]}>
-            Oráculo diário, Mentor SouMente, reflexões do Grimório, insights de objetivos e geração de raízes.
+            Oráculo diário, Mentor SouMente, reflexões do Grimório e geração de raízes.
           </Text>
         </View>
         <TouchableOpacity style={[styles.testAiButton, testingAi && { opacity: 0.65 }]} onPress={handleTestAi} disabled={testingAi}>

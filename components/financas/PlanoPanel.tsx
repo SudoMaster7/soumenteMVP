@@ -38,7 +38,7 @@ const PHASE_LABEL: Record<SEPurchase['phase'], string> = {
   month23: 'Meses 2-3',
 };
 
-export default function PlanoModule() {
+export default function PlanoPanel() {
   const { theme } = useTheme();
   const colors = theme.colors;
   const { purchases, togglePurchase, addPurchase, updatePurchase, deletePurchase } = useSuperEuStore();
@@ -113,9 +113,9 @@ export default function PlanoModule() {
 
   return (
     <ScrollView style={[styles.scroll, { backgroundColor: colors.background }]} contentContainerStyle={styles.content}>
-      <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+      <View style={[styles.heroCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <View style={styles.heroTopRow}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.accentSoft }]}> 
+          <View style={[styles.heroIcon, { backgroundColor: colors.accentSoft }]}>
             <Ionicons name="map-outline" size={22} color={colors.accent} />
           </View>
           <View style={styles.heroTextWrap}>
@@ -123,9 +123,9 @@ export default function PlanoModule() {
             <Text style={[styles.heroSubtitle, { color: colors.muted }]}>Priorize o que desbloqueia energia, foco e execucao.</Text>
           </View>
         </View>
-        <View style={[styles.remainingBox, { backgroundColor: colors.backgroundAlt }]}> 
+        <View style={[styles.remainingBox, { backgroundColor: colors.backgroundAlt }]}>
           <Text style={[styles.remainingLabel, { color: colors.muted }]}>Investimento pendente</Text>
-          <Text style={[styles.remainingValue, { color: colors.primary }]}> 
+          <Text style={[styles.remainingValue, { color: colors.primary }]}>
             {fmtBRL(stats.remainingMin)}{stats.remainingMax > stats.remainingMin ? ` a ${fmtBRL(stats.remainingMax)}` : ''}
           </Text>
         </View>
@@ -153,7 +153,7 @@ export default function PlanoModule() {
       </ScrollView>
 
       {filtered.map((item) => (
-        <View key={item.id} style={[styles.purchaseRow, { backgroundColor: colors.surface, borderColor: item.done ? colors.success : colors.border, opacity: item.done ? 0.72 : 1 }]}> 
+        <View key={item.id} style={[styles.purchaseRow, { backgroundColor: colors.surface, borderColor: item.done ? colors.success : colors.border, opacity: item.done ? 0.72 : 1 }]}>
           <TouchableOpacity
             style={[styles.checkbox, { borderColor: item.done ? colors.success : colors.border, backgroundColor: item.done ? colors.success : colors.backgroundAlt }]}
             onPress={() => togglePurchase(item.id)}
@@ -167,13 +167,13 @@ export default function PlanoModule() {
           <TouchableOpacity style={styles.purchaseInfo} onPress={() => togglePurchase(item.id)} activeOpacity={0.8}>
             <View style={styles.purchaseTitleRow}>
               <Text style={[styles.purchaseName, { color: colors.text }, item.done && styles.purchaseNameDone]}>{item.name}</Text>
-              <View style={[styles.phaseBadge, { backgroundColor: colors.accentSoft }]}> 
+              <View style={[styles.phaseBadge, { backgroundColor: colors.accentSoft }]}>
                 <Text style={[styles.phaseBadgeText, { color: colors.accent }]}>{PHASE_LABEL[item.phase]}</Text>
               </View>
             </View>
             {item.why ? <Text style={[styles.purchaseWhy, { color: colors.muted }]}>{item.why}</Text> : null}
             {(item.min > 0 || item.max > 0) ? (
-              <Text style={[styles.priceRange, { color: colors.primary }]}> 
+              <Text style={[styles.priceRange, { color: colors.primary }]}>
                 {fmtBRL(item.min)}{item.max > item.min ? ` a ${fmtBRL(item.max)}` : ''}
               </Text>
             ) : null}
@@ -201,7 +201,7 @@ export default function PlanoModule() {
       ))}
 
       {filtered.length === 0 ? (
-        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+        <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Ionicons name="file-tray-outline" size={24} color={colors.primary} />
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Nada nesta fase</Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>Adicione um item ou veja todos para reorganizar seu plano.</Text>
@@ -218,7 +218,7 @@ export default function PlanoModule() {
         <ScrollView style={[styles.sheet, { backgroundColor: colors.surfaceElevated }]} keyboardShouldPersistTaps="handled">
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: colors.text }]}>{editingPurchaseId ? 'Editar item do plano' : 'Novo item do plano'}</Text>
-            <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}> 
+            <TouchableOpacity onPress={() => { resetForm(); setShowAdd(false); }} style={[styles.closeButton, { backgroundColor: colors.backgroundAlt }]}>
               <Ionicons name="close" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -232,7 +232,7 @@ export default function PlanoModule() {
             {(PHASES.filter((phase): phase is PhaseOption & { id: SEPurchase['phase'] } => phase.id !== 'all')).map((phase) => {
               const active = form.phase === phase.id;
               return (
-                <TouchableOpacity key={phase.id} onPress={() => setForm((current) => ({ ...current, phase: phase.id }))} style={[styles.phaseChip, { backgroundColor: active ? colors.primarySoft : colors.surface, borderColor: active ? colors.primary : colors.border }]}> 
+                <TouchableOpacity key={phase.id} onPress={() => setForm((current) => ({ ...current, phase: phase.id }))} style={[styles.phaseChip, { backgroundColor: active ? colors.primarySoft : colors.surface, borderColor: active ? colors.primary : colors.border }]}>
                   <Text style={[styles.phaseChipText, { color: active ? colors.primary : colors.muted }]}>{phase.label}</Text>
                 </TouchableOpacity>
               );
@@ -248,7 +248,7 @@ export default function PlanoModule() {
 
   function Stat({ label, value, icon }: { label: string; value: string; icon: ComponentProps<typeof Ionicons>['name'] }) {
     return (
-      <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}> 
+      <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Ionicons name={icon} size={18} color={colors.accent} />
         <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
         <Text style={[styles.statLabel, { color: colors.muted }]}>{label}</Text>

@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text } from 'react-native';
 import { useTheme } from '@/lib/theme';
 
 export default function TabsLayout() {
@@ -43,11 +42,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="super-eu"
+        name="rituais"
         options={{
-          title: 'Super Eu',
-          tabBarIcon: ({ color }) => (
-            <Text style={{ fontSize: 18, color }}>◈</Text>
+          title: 'Rituais',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="flame-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="financas"
+        options={{
+          title: 'Financas',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="wallet-outline" size={size} color={color} />
           ),
         }}
       />
@@ -57,6 +65,15 @@ export default function TabsLayout() {
           title: 'Diario',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="treino"
+        options={{
+          title: 'Treino',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="barbell-outline" size={size} color={color} />
           ),
         }}
       />

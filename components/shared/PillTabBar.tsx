@@ -1,27 +1,20 @@
 import { ScrollView, TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SE_TABS } from '@/constants/supereu';
 import { useTheme, type AppTheme } from '@/lib/theme';
-import type { SuperEuModule } from '@/types/supereu';
 
-interface Props {
-  active: SuperEuModule;
-  onSelect: (tab: SuperEuModule) => void;
-  tabs?: typeof SE_TABS;
+export interface PillTab<T extends string> {
+  id: T;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }
 
-const ICONS: Record<SuperEuModule, keyof typeof Ionicons.glyphMap> = {
-  oracle: 'compass-outline',
-  mentor: 'chatbubbles-outline',
-  padroes: 'git-network-outline',
-  rituais: 'flame-outline',
-  objetivos: 'flag-outline',
-  plano: 'map-outline',
-  financas: 'wallet-outline',
-  grimorio: 'book-outline',
-};
+interface Props<T extends string> {
+  active: T;
+  onSelect: (id: T) => void;
+  tabs: PillTab<T>[];
+}
 
-export default function SuperEuTabBar({ active, onSelect, tabs = SE_TABS }: Props) {
+export default function PillTabBar<T extends string>({ active, onSelect, tabs }: Props<T>) {
   const { theme } = useTheme();
   const styles = makeStyles(theme);
   const colors = theme.colors;
@@ -33,7 +26,7 @@ export default function SuperEuTabBar({ active, onSelect, tabs = SE_TABS }: Prop
           const isActive = tab.id === active;
           return (
             <TouchableOpacity key={tab.id} onPress={() => onSelect(tab.id)} style={[styles.tab, isActive && styles.tabActive]} activeOpacity={0.7}>
-              <Ionicons name={ICONS[tab.id]} size={15} color={isActive ? colors.primary : colors.muted} />
+              <Ionicons name={tab.icon} size={15} color={isActive ? colors.primary : colors.muted} />
               <Text style={[styles.label, isActive && styles.labelActive]}>{tab.label}</Text>
             </TouchableOpacity>
           );
@@ -48,7 +41,7 @@ function makeStyles(theme: AppTheme) {
   const colors = theme.colors;
   return StyleSheet.create({
     wrapper: { backgroundColor: colors.background, paddingTop: 12 },
-    row: { flexDirection: 'row', paddingHorizontal: 16, gap: 6, paddingBottom: 8 },
+    row: { flexDirection: 'row', gap: 6, paddingBottom: 8 },
     tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 9, paddingHorizontal: 13, borderRadius: 100, borderWidth: 1, borderColor: 'transparent' },
     tabActive: { backgroundColor: colors.primarySoft, borderColor: colors.border },
     label: { fontSize: 11, letterSpacing: 0.8, color: colors.muted, fontWeight: '700' },
